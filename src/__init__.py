@@ -1,2 +1,2 @@
-from . import util_custom
-from . import sqlite_custom
+from . import util_custom as ut
+from . import sqlite_custom as sql

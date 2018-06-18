@@ -1,5 +1,5 @@
 def calc_coords_from_playerloc_and_dir(player):
-	struct coordinates coords = get_player_coords(player)
+	Coords coords = get_player_coords(player)
 
 	if (player->store == NULL || strlen((char *)player->store) == 0) {
 		coords.x = coords.y = coords.z = -1

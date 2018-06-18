@@ -1,18 +1,17 @@
 import random
 import socket
 import sys
-import sqlite3
-import utils
 
-from . import sqlite_custom
-from . import util_custom
+from . import sqlite_custom as sql
+from . import util_custom as uti
 
 # get a suitable port
 port = random.randint(5000, 6000)
 print("Use port %d for connections\n", port)
 
 # open the sqlite3 dbs
-assert sqlite_custom.init_dbs() == 0
+dbManager = sql.SQLDBManager()
+assert dbManager.init_dbs() == 0
 
 # create the master socket
 listen_socket = socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -34,7 +33,7 @@ iterate = True
 inputs = [listen_socket]
 outputs = []
 
-while (iterate):
+while iterate:
     readable, writable, exceptional = select.select(inputs, outputs, inputs)
 
 print("minimud server exited")
