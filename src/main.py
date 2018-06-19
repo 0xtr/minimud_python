@@ -1,6 +1,7 @@
 import random
 import socket
 import sys
+import select
 
 from . import sqlite_custom as sql
 from . import util_custom as uti
@@ -25,16 +26,26 @@ except Exception as e:
     sys.exit(1)
 
 # set listener for connections
-if socket.listen(listen_socket, SOMAXCONN) != 0:
+if socket.listen() != 0:
     print("Listening for connections failed")
     sys.exit(1)
 
 iterate = True
 inputs = [listen_socket]
 outputs = []
+exceptional = []
 
 while iterate:
-    readable, writable, exceptional = select.select(inputs, outputs, inputs)
+    try:
+        inputs, outputs, exceptional = select.select(inputs, outputs, [])
+    except select.error as selError:
+        break
+    except socket.error as sockError:
+        break
+
+    if (inputs):
+        print("hello: " + len(inputs))
+        break;
 
 print("minimud server exited")
 sys.exit(1)

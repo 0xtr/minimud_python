@@ -1,11 +1,11 @@
 def calc_coords_from_playerloc_and_dir(player):
 	Coords coords = get_player_coords(player)
 
-	if (player->store == NULL || strlen((char *)player->store) == 0) {
+	if not player.store:
 		coords.x = coords.y = coords.z = -1
 		return coords
-	}
 
+	# WHAT
 	struct command *info = (struct command *)calloc(sizeof(struct command), 
 			sizeof(struct command))
 
@@ -18,40 +18,28 @@ def calc_coords_from_playerloc_and_dir(player):
 	coords.y += y_movement_to_vector(info)
 	coords.z += z_movement_to_vector(info)
 
-	free(info)
-
 	return coords
 
 def x_movement_to_vector(info):
-	if (info->subtype == DIR_EAST || 
-			info->subtype == DIR_NORTHEAST ||
-			info->subtype == DIR_SOUTHEAST) {
-		// returning 1
+	if any(info.subtype in i for i in (DIR_EAST, DIR_NORTHEAST, DIR_SOUTHEAST)):
 		return 1
-	} else if (info->subtype == DIR_SOUTHWEST ||
-			info->subtype == DIR_NORTHWEST ||
-			info->subtype == DIR_WEST) {
+	elif any(info.subtype in i for i in (DIR_SOUTHWEST, DIR_NORTHWEST, DIR_WEST)):
 		return -1
-	}
+
 	return 0
-}
 
 def y_movement_to_vector(info):
-	if (info->subtype == DIR_NORTH || 
-			info->subtype == DIR_NORTHEAST ||
-			info->subtype == DIR_NORTHWEST) {
+	if any(info.subtype in i for i in (DIR_NORTH, DIR_NORTHEAST, DIR_NORTHWEST)):
 		return 1
-	} else if (info->subtype == DIR_SOUTHEAST || 
-			info->subtype == DIR_SOUTHWEST ||
-			info->subtype == DIR_SOUTH) {
+	elif any(info.subtype in i for i in (DIR_SOUTHEAST, DIR_SOUTHWEST, DIR_SOUTH)):
 		return -1
-	}
+
 	return 0
 
 def z_movement_to_vector(info):
-	if (info->subtype == DIR_UP) {
+	if (info.subtype == DIR_UP):
 		return 1
-	} else if (info->subtype == DIR_DOWN) {
+	elif (info.subtype == DIR_DOWN):
 		return -1
-	}
+
 	return 0
