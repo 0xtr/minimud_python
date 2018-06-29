@@ -1,9 +1,15 @@
 class Inventory:
-	count
+    itemCount = 0
+
 
 class Object:
-	id
-	obj_name, bj_desc, obj_keywords[]
-	obj_weight
+    id = 0
+    name = ''
+    description = ''
+    keywords = ''
+    weight = ''
+
 
 def get_new_player_inventory(socket):
+    # yo
+    hi = 0

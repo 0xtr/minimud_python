@@ -4,7 +4,6 @@ import sys
 import select
 
 from . import sqlite_custom as sql
-from . import util_custom as uti
 
 # get a suitable port
 port = random.randint(5000, 6000)
