@@ -1,6 +1,8 @@
 def outgoing_handler(player):
-	const size_t buflen = strlen((char *)player->buffer)
-	size_t expected = (buflen > (BUFFER_LENGTH - 1)) ? BUFFER_LENGTH : buflen
+    BUFFER_LENGTH = 0
+    if len(player.buffer) > 1024:
+        BUFFER_LENGTH = 1024
+
 	size_t buffer_pos = 0
 
 	if ((1 + strlen((char *)player->buffer)) <= PRINT_LINE_WIDTH) {

@@ -36,3 +36,16 @@ class Direction(Enum):
     SOUTHWEST = auto()
     NORTHWEST = auto()
 
+
+class RoomExits(Enum):
+    NORTH_EXIT = auto()
+    EAST_EXIT = auto()
+    SOUTH_EXIT = auto()
+    WEST_EXIT = auto()
+    UP_EXIT = auto()
+    DOWN_EXIT = auto()
+    NORTHEAST_EXIT = auto()
+    SOUTHEAST_EXIT = auto()
+    SOUTHWEST_EXIT = auto()
+    NORTHWEST_EXIT = auto()
+
