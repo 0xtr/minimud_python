@@ -1,8 +1,9 @@
 from enum import Enum, auto
-from ..spaces import SpaceClasses
-from ..util_custom import OutgoingHandler
-from ..players import PlayerManagementLive
-from ..commands import CommandClasses
+from src.io import OutgoingHandler
+from src.rooms import SpaceClasses
+from src.players import PlayerManagementLive
+from src.commands import CommandClasses
+
 
 class PrintArg(Enum):
     PRINT_INVAL_CMD = auto()

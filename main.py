@@ -3,14 +3,14 @@ import socket
 import sys
 import select
 
-from . import sqlite_custom as sql
-
 # get a suitable port
+from src import sqlitehelper
+
 port = random.randint(5000, 6000)
-print("Use port %d for connections\n", port)
+print("Use port " + str(port) + " for connections\n")
 
 # open the sqlite3 dbs
-dbManager = sql.SQLDBManager()
+dbManager = sqlitehelper.SQLDBManager()
 assert dbManager.init_dbs() == 0
 
 # create the master socket
@@ -18,7 +18,7 @@ listen_socket = socket(socket.AF_INET, socket.SOCK_STREAM)
 listen_socket.setblocking(0)
 
 # bind it to our chosen port
-try: 
+try:
     socket.bind(listen_socket, '')
 except Exception as e:
     print(e.args)
@@ -35,6 +35,7 @@ outputs = []
 exceptional = []
 
 while iterate:
+    print("loop go")
     try:
         inputs, outputs, exceptional = select.select(inputs, outputs, [])
     except select.error as selError:
@@ -42,9 +43,9 @@ while iterate:
     except socket.error as sockError:
         break
 
-    if (inputs):
+    if inputs:
         print("hello: " + len(inputs))
-        break;
+        break
 
 print("minimud server exited")
 sys.exit(1)

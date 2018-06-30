@@ -1,4 +1,4 @@
-from ..items import Inventory
+from src.items import Inventory
 from enum import Enum, auto
 
 

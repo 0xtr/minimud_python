@@ -1,8 +1,8 @@
 import sqlite3
 import os
 from enum import Enum, auto
-from ..spaces import SpaceClasses
-from ..spaces import RoomCRUD
+from src.rooms import SpaceClasses, RoomCRUD
+
 
 class DBTypes(Enum):
     ROOM_DB = auto()
@@ -14,13 +14,6 @@ class DBTypes(Enum):
         PLAYER_DB, "playerdb.db",
         OBJ_DB, "objdb.db"
     }
-
-class SQLiteHelper:
-    # merge with another class?
-    dbConnections = {}
-    def __init__(self):
-        for i in len(DBTypes.dbLocations):
-            self.dbConnections.add(sqlite3.connect(DBTypes.dbLocations[i]))
 
 
 class QueryResult:
@@ -34,6 +27,7 @@ class SQLExecution:
     query = ''
     queryArgs = ''
     dbToRunOn = []
+
     def __init__(self, query, queryArgs, dbToRunOn):
         self.query = query
         self.queryArgs = queryArgs
@@ -42,20 +36,26 @@ class SQLExecution:
     def run(self, data):
         print("sql " + self.query)
 
-        conn = SQLiteHelper.dbConnections[self.dbToRunOn]
+        conn = SQLDBManager.dbConnections[self.dbToRunOn]
         print("conn " + conn)
         assert conn
         cursor = conn.cursor()
         # is it okay if queryargs is empty to do this
         cursor.execute(self.query, self.queryArgs)
+        print("results for [" + self.query + "]: " + cursor.fetchall);
 
         return QueryResult(cursor.fetchall())
 
 
 class SQLDBManager:
+    dbConnections = {}
+
     # update with locs
     # CLEAN ME
     def __init__(self, type, loc):
+        for i in len(DBTypes.dbLocations):
+            self.dbConnections.add(sqlite3.connect(DBTypes.dbLocations[i]))
+
         tables_needed = False
 
         if os.path.exists(loc) and os.path.isdir(loc):
@@ -84,7 +84,7 @@ class SQLDBManager:
         rconfig = SpaceClasses.RoomBlueprint()
         rconfig.name = "The Core of the World"
         rconfig.desc = "It is pitch black. You are likely to be eaten by a null character."
-        rconfig.coords = [0,0,0]
+        rconfig.coords = [0, 0, 0]
         rconfig.owner = "system"
         rconfig.flags = "none"
 
@@ -92,19 +92,20 @@ class SQLDBManager:
         assert result.id == 1
 
     def open_playerdb(self):
-        assert(run_sql(sqlite3_mprint(
+        assert (run_sql(sqlite3_mprint(
             "CREATE TABLE PLAYERS (id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "name TEXT, hash TEXT, salt TEXT, last_ip TEXT,"
             "loc_id INT)"), 0, DB_PLAYER) == EXIT_SUCCESS)
 
     def open_objdb(self):
-        assert(run_sql(sqlite3_mprint(
+        assert (run_sql(sqlite3_mprint(
             "CREATE TABLE OBJECTS (id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "obj_name TEXT, obj_keywords TEXT, obj_desc TEXT, obj_createdby TEXT,"
-            "obj_location INT, obj_playerid INT)"), 0, DB_OBJECT) == EXIT_SUCCESS)
+            "obj_location INT, obj_playerid INT)"), 0,
+            DB_OBJECT) == EXIT_SUCCESS)
 
     def open_roomdb(self):
-        assert(run_sql(sqlite3_mprint(
+        assert (run_sql(sqlite3_mprint(
             "CREATE TABLE ROOMS (id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "name TEXT, desc TEXT, "
             "x INT, y INT, z  INT,"

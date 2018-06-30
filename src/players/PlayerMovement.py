@@ -1,4 +1,5 @@
-from src.spaces import SpaceClasses as Coordinates
+from src.rooms import SpaceClasses as Coordinates
+
 
 def calc_coords_from_playerloc_and_dir(player):
     Coordinates coords = get_player_coords(player)

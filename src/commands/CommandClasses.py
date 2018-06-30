@@ -1,5 +1,6 @@
 from enum import Enum, auto
-from ..spaces import SpaceClasses
+from src.rooms import SpaceClasses
+
 
 class Movement(Enum):
     DIR_NORTH = auto()
