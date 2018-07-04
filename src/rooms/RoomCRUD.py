@@ -5,15 +5,17 @@ from src.players.PlayerManagementLive import get_player_by_id
 from ..sqlitehelper import SQLiteHelper
 from . import SpaceClasses
 
+
 def adjust_room_name(player):
     if compare_room_owner(player, player.coords) == -1:
         return 2
 
     return SQLiteHelper.SQLExecution(
         "UPDATE ROOMS SET name = :store, last_modified_by = %Q WHERE x = %Q AND y = %Q AND z = %Q",
-        {"name":player.store,"last_modified_by":player.name,
-         "x":player.coords.x,"y":player.coords.y,"z":player.coords.z},
+        {"name": player.store, "last_modified_by": player.name,
+         "x": player.coords.x, "y": player.coords.y, "z": player.coords.z},
         SQLiteHelper.DBTypes.ROOM_DB)
+
 
 def adjust_room_desc(player):
     if compare_room_owner(player, player.coords) == -1:
@@ -21,9 +23,10 @@ def adjust_room_desc(player):
 
     return SQLiteHelper.SQLExecution(
         "UPDATE ROOMS SET desc = :store, last_modified_by = %Q WHERE x = %Q AND y = %Q AND z = %Q",
-        {"name":player.store,"last_modified_by":player.name,
-         "x":player.coords.x,"y":player.coords.y,"z":player.coords.z},
+        {"name": player.store, "last_modified_by": player.name,
+         "x": player.coords.x, "y": player.coords.y, "z": player.coords.z},
         SQLiteHelper.DBTypes.ROOM_DB)
+
 
 def adjust_room_flag(player):
     if compare_room_owner(player, player.coords) == -1:
@@ -31,15 +34,16 @@ def adjust_room_flag(player):
 
     return SQLiteHelper.SQLExecution(
         "UPDATE ROOMS SET flags = :store, last_modified_by = %Q WHERE x = %Q AND y = %Q AND z = %Q",
-        {"name":player.store,"last_modified_by":player.name,
-         "x":player.coords.x,"y":player.coords.y,"z":player.coords.z},
+        {"name": player.store, "last_modified_by": player.name,
+         "x": player.coords.x, "y": player.coords.y, "z": player.coords.z},
         SQLiteHelper.DBTypes.ROOM_DB)
+
 
 def link_rooms(dir, existing, newroom):
     result = SQLiteHelper.SQLExecution(
         "UPDATE ROOMS SET :dir = :rid WHERE x = :x AND y = :y AND z = :z",
-        {"dir":get_dir_str(dir), "rid":existing.r_id,
-         "x":existing.x,"y":existing.y,"z":existing.z},
+        {"dir": get_dir_str(dir), "rid": existing.r_id,
+         "x": existing.x, "y": existing.y, "z": existing.z},
         SQLiteHelper.DBTypes.ROOM_DB)
 
     if result.results is None:
@@ -47,17 +51,19 @@ def link_rooms(dir, existing, newroom):
 
     result = SQLiteHelper.SQLExecution(
         "UPDATE ROOMS SET :dir = :rid WHERE x = :x AND y = :y AND z = :z",
-        {"dir":get_dir_str_opposite(dir), "rid":newroom.r_id,
-         "x":newroom.x,"y":newroom.y,"z":newroom.z},
+        {"dir": get_dir_str_opposite(dir), "rid": newroom.r_id,
+         "x": newroom.x, "y": newroom.y, "z": newroom.z},
         SQLiteHelper.DBTypes.ROOM_DB)
 
     if result.results is None:
         return 1
+
 
 def unlink_rooms(direction, existing, newroom):
     result = SQLiteHelper.SQLExecution(
         "UPDATE ROOMS SET %Q = '-1' WHERE x = :x AND y = :y AND z = :z",
-        {"exit":get_dir_str(direction), "x":existing.x, "y":existing.y, "z":existing.z},
+        {"exit": get_dir_str(direction), "x": existing.x, "y": existing.y,
+         "z": existing.z},
         SQLiteHelper.DBTypes.ROOM_DB)
 
     if result.results is None:
@@ -65,7 +71,8 @@ def unlink_rooms(direction, existing, newroom):
 
     result = SQLiteHelper.SQLExecution(
         "UPDATE ROOMS SET %Q = '-1' WHERE x = :x AND y = :y AND z = :z",
-        {"exit":get_dir_str_opposite(direction), "x":newroom.x, "y":newroom.y, "z":newroom.z},
+        {"exit": get_dir_str_opposite(direction), "x": newroom.x,
+         "y": newroom.y, "z": newroom.z},
         SQLiteHelper.DBTypes.ROOM_DB)
 
     if result.results is None:
@@ -73,22 +80,28 @@ def unlink_rooms(direction, existing, newroom):
 
     return 0
 
+
 def insert_room(rconfig):
     result = SQLiteHelper.SQLExecution(
         "INSERT INTO ROOMS (name, desc, x, y, z, north, east, south, west, up, down, "
         "northeast, southeast, southwest, northwest, owner, last_modified_by, flags) "
         "VALUES (:name, :desc, :x, :y, :z, :north, :east, :south, :west, "
         ":up, :down, :northeast, :southeast, :southwest, :northwest, :owner, :last_modified_by, :flags)",
-        {"name":rconfig.name,"desc":rconfig.desc,"x":rconfig.x,"y":rconfig.y,"z":rconfig.z,
-         "north":"-1","east":"-1","south":"-1","west":"-1","up":"-1","down":"-1",
-         "northeast":"-1","southeast":"-1","southwest":"-1","northwest":"-1",
-         "owner":rconfig.owner,"last_modified_by":rconfig.owner,"flags":rconfig.flags},
+        {"name": rconfig.name, "desc": rconfig.desc, "x": rconfig.x,
+         "y": rconfig.y, "z": rconfig.z,
+         "north": "-1", "east": "-1", "south": "-1", "west": "-1", "up": "-1",
+         "down": "-1",
+         "northeast": "-1", "southeast": "-1", "southwest": "-1",
+         "northwest": "-1",
+         "owner": rconfig.owner, "last_modified_by": rconfig.owner,
+         "flags": rconfig.flags},
         SQLiteHelper.DBTypes.ROOM_DB)
 
     if result.results is None:
         return None
 
     return lookup_room(rconfig.coords)
+
 
 def remove_room(player):
     roomResult = lookup_room(player.coords);
@@ -101,19 +114,20 @@ def remove_room(player):
     check_exits_and_adjust(player.coords, roomResult)
 
     queryResult = SQLiteHelper.SQLExecution(
-            "DELETE FROM ROOMS WHERE x = :x AND y = :y AND z = :z",
-            {"x":player.coords.x, "y":player.coords.y, "z":player.coords.z},
-            SQLiteHelper.DBTypes.ROOM_DB)
+        "DELETE FROM ROOMS WHERE x = :x AND y = :y AND z = :z",
+        {"x": player.coords.x, "y": player.coords.y, "z": player.coords.z},
+        SQLiteHelper.DBTypes.ROOM_DB)
 
     if queryResult.results is None:
         return 1
 
     return 0
 
+
 def check_exits_and_adjust(coords, room):
     evacuate_to = 0
 
-    for i in 10:
+    for i in range(0, 10):
         if room.exits[i] == -1:
             continue
 
@@ -131,6 +145,7 @@ def check_exits_and_adjust(coords, room):
         unlink_rooms(actual, room, roomResult)
 
     assert remove_players_from_room(coords, room) == 0
+
 
 def exit_to_dir(room_exit):
     if room_exit == SpaceClasses.RoomExits.NORTH_EXIT:
@@ -155,10 +170,11 @@ def exit_to_dir(room_exit):
         return SpaceClasses.RoomExits.DIR_NORTHWEST
     return -1
 
+
 def remove_players_from_room(coords, target_room):
     queryResult = players_in_room(target_room.rid)
 
-    for i in len(queryResult.results):
+    for i in range(0, len(queryResult.results)):
         if queryResult.results[i].id == 0:
             break
 
@@ -175,86 +191,69 @@ def remove_players_from_room(coords, target_room):
 
     return 0
 
+
 def lookup_room(coords):
-    convert_coords_into_string_params(coords)
+    queryResult = SQLiteHelper.SQLExecution(
+        "SELECT * FROM ROOMS WHERE x = :x AND y = :y AND z = :z",
+        {"x": coords.x, "y": coords.y, "z": coords.z},
+        SQLiteHelper.DBTypes.ROOM_DB)
 
-    struct room_db_record *map = get_room()
+    if queryResult.results is None:
+        return None
 
-    int32_t rv = run_sql(sqlite3_mprintf(
-            "SELECT * FROM ROOMS WHERE x = %Q AND y = %Q AND z = %Q",
-            param_x, param_y, param_z), map, DB_ROOM)
+    return queryResult
 
-    if (rv == EXIT_FAILURE)
-        return NULL
 
-    return map
+def lookup_room_by_id(r_id):
+    queryResult = SQLiteHelper.SQLExecution(
+        "SELECT * FROM ROOMS WHERE id = :id",
+        {"id": r_id}, SQLiteHelper.DBTypes.ROOM_DB)
 
-def lookup_room_by_id(id):
-    uint8_t idstr[2 * sizeof(id)] = {0}
-    snprintf((char *)idstr, sizeof(id), "%d", id)
+    if queryResult.results is None:
+        return None
 
-    struct room_db_record *map = get_room()
+    return queryResult
 
-    int32_t rv = run_sql(sqlite3_mprintf(
-            "SELECT * FROM ROOMS WHERE id = %Q", idstr), map, DB_ROOM);
-
-    if (rv == EXIT_FAILURE)
-        return NULL
-
-    return map
 
 def lookup_room_exits(origin, dest_room):
-    int32_t rv = 0
-    struct room_db_record *origin_room = lookup_room(origin)
+    origin_room = lookup_room(origin)
+    if origin_room is None:
+        return -2
 
-    if (dest_room == NULL) {
-        rv = -2
-        goto end
-    }
-
-    if (has_exit_for_dir(origin_room, dest_room) == EXIT_FAILURE)
+    if has_exit_for_dir(origin_room, dest_room) is 1:
         rv = -1
 
-    end:
-
-    free(origin_room)
-
     return rv
+
 
 def has_exit_for_dir(origin, dest):
-    for (size_t i = 0 i < 10; ++i) {
-        if (dest->exits[i] == -1)
+    for i in range(0, 10):
+        if dest.exits[i] == -1:
             continue
+        if origin.id is dest.exits[i]:
+            return 0
 
-        if (memcmp(&origin->id, &dest->exits[i], sizeof(int32_t)) == 0)
-            return EXIT_SUCCESS
-    }
+    return 1
 
-    return EXIT_FAILURE
 
 def lookup_room_name_from_coords(player, coords):
-    struct room_db_record *map = lookup_room(coords)
+    roomResult = lookup_room(coords)
 
-    if (map != NULL) {
-        // get_room_details(map)
-        set_player_buffer_replace(player, map->rname)
-        free(map)
-    } else {
-        set_player_buffer_replace(player, "NULL SPACE")
-    }
+    if roomResult is not None:
+        player.buffer = roomResult.name
+    else:
+        player.buffer = "NULL SPACE"
 
-    return EXIT_SUCCESS
+    return 0
+
 
 def compare_room_owner(player, coords):
-    int32_t rv = EXIT_SUCCESS
-    struct room_db_record *map = lookup_room(coords)
+    roomResult = lookup_room(coords)
 
-    if (strcmp((char*)player->name, (char*)map->owner) != 0)
-        rv = EXIT_FAILURE
+    if player.name is map.owner:
+        return 1
 
-    free(map)
-
-    return rv
+    return 0
 
 
 def get_dir_str_opposite(direction):
@@ -294,4 +293,3 @@ def get_dir_str(direction):
         return dirToString[direction]
 
     return "nowhere"
-

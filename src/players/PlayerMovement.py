@@ -2,11 +2,9 @@ from src.rooms import SpaceClasses as Coordinates
 
 
 def calc_coords_from_playerloc_and_dir(player):
-    Coordinates coords = get_player_coords(player)
-
-    if not player.store:
-        coords.x = coords.y = coords.z = -1
-        return coords
+    if player.store is None:
+        player.coords.x = player.coords.y = player.coords.z = -1
+        return
 
     # new command struct
 

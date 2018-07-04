@@ -92,20 +92,23 @@ class SQLDBManager:
         assert result.id == 1
 
     def open_playerdb(self):
-        assert (run_sql(sqlite3_mprint(
-            "CREATE TABLE PLAYERS (id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        queryResult = SQLExecution(
+            "CREATE TABLE PLAYERS (id PRIMARY KEY AUTOINCREMENT,"
             "name TEXT, hash TEXT, salt TEXT, last_ip TEXT,"
-            "loc_id INT)"), 0, DB_PLAYER) == EXIT_SUCCESS)
+            "loc_id INT)", {}, DBTypes.PLAYER_DB)
+
+        assert queryResult.results is not None
 
     def open_objdb(self):
-        assert (run_sql(sqlite3_mprint(
+        queryResult = SQLExecution(
             "CREATE TABLE OBJECTS (id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "obj_name TEXT, obj_keywords TEXT, obj_desc TEXT, obj_createdby TEXT,"
-            "obj_location INT, obj_playerid INT)"), 0,
-            DB_OBJECT) == EXIT_SUCCESS)
+            "obj_location INT, obj_playerid INT)", {}, DBTypes.OBJ_DB)
+
+        assert queryResult.results is not None
 
     def open_roomdb(self):
-        assert (run_sql(sqlite3_mprint(
+        queryResult = SQLExecution(
             "CREATE TABLE ROOMS (id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "name TEXT, desc TEXT, "
             "x INT, y INT, z  INT,"
@@ -113,4 +116,6 @@ class SQLDBManager:
             "west  INT, up   INT, down  INT,"
             "northeast INT, southeast INT, southwest INT," "northwest INT,"
             "owner TEXT, last_modified_by TEXT,"
-            "flags TEXT)"), 0, DB_ROOM) == 0)
+            "flags TEXT)", {}, DBTypes.ROOM_DB)
+
+        assert queryResult.results is not None
