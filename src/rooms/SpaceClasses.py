@@ -49,3 +49,17 @@ class RoomExits(Enum):
     SOUTHWEST_EXIT = auto()
     NORTHWEST_EXIT = auto()
 
+
+class RoomAdjustments(Enum):
+    WAIT_ENTER_NEW_ROOM_NAME = auto()
+    WAIT_CONFIRM_NEW_ROOM_NAME = auto()
+    WAIT_ENTER_NEW_ROOM_DESC = auto()
+    WAIT_CONFIRM_NEW_ROOM_DESC = auto()
+    WAIT_ROOM_REMOVAL_CHECK = auto()
+    WAIT_ROOM_REMOVAL_CONFIRM = auto()
+    WAIT_ROOM_CREATION_DIR = auto()
+    WAIT_ROOM_CREATION_NAME = auto()
+    WAIT_ROOM_CREATION_DESC = auto()
+    WAIT_ROOM_CREATION_CONF = auto()
+    WAIT_ENTER_FLAG_NAME = auto()
+    WAIT_ENTER_EXIT_NAME = auto()
