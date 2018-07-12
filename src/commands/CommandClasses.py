@@ -1,28 +1,17 @@
 from enum import Enum, auto
-from src.rooms import SpaceClasses
 
 
 class Movement(Enum):
     DIR_NORTH = auto()
-    DIR_N = auto()
     DIR_EAST = auto()
-    DIR_E = auto()
     DIR_SOUTH = auto()
-    DIR_S = auto()
     DIR_WEST = auto()
-    DIR_W = auto()
     DIR_UP = auto()
-    DIR_U = auto()
     DIR_DOWN = auto()
-    DIR_D = auto()
     DIR_NORTHEAST = auto()
-    DIR_NE = auto()
     DIR_SOUTHEAST = auto()
-    DIR_SE = auto()
     DIR_SOUTHWEST = auto()
-    DIR_SW = auto()
     DIR_NORTHWEST = auto()
-    DIR_NW = auto()
     DIR_NOT = auto()
 
 
@@ -53,12 +42,9 @@ class RoomChange(Enum):
 
 class InfoRequest(Enum):
     INFO_ROOM = auto()
-    INFO_ROOM2 = auto()
     INFO_PLAYERS = auto()
     INFO_MAP = auto()
     INFO_COMMANDS = auto()
-    INFO_COMMANDS2 = auto()
-    INFO_COMMANDS3 = auto()
     INFO_NOT = auto()
 
 
@@ -71,18 +57,63 @@ class TravelAction(Enum):
 class Command:
     type = CommandTypes.COMMAND_NOT
     subtype = CommandTypes.COMMAND_NOT
-    commandList = {
-        CommandTypes.MOVEMENT, ["north", "n", "east", "e", "south", "s", "west", "w",
-                                "up", "u", "down", "d", "northeast", "ne", "southeast",
-                                "se", "southwest", "sw", "northwest", "nw"],
-        CommandTypes.SYSTEM_ACTION, ["say", "quit"],
-        CommandTypes.INFO_REQUEST, ["look", "l", "players", "map", "commands", "?", "help"],
-        CommandTypes.ROOM_CHANGE, ["mkroom", "rmroom", "setrname", "setrdesc", "setrexit", "setrflag"],
-        CommandTypes.TRAVEL_ACTION, ["goto", "swap"]
-    }
+
+    @staticmethod
+    def getCompleteList():
+        return {
+            CommandTypes.MOVEMENT:
+                {"north": Movement.DIR_NORTH, "n": Movement.DIR_NORTH,
+                 "east": Movement.DIR_EAST, "e": Movement.DIR_EAST,
+                 "south": Movement.DIR_SOUTH, "s": Movement.DIR_SOUTH,
+                 "west": Movement.DIR_WEST, "w": Movement.DIR_WEST,
+                 "up": Movement.DIR_UP, "u": Movement.DIR_UP,
+                 "down": Movement.DIR_DOWN, "d": Movement.DIR_DOWN,
+                 "northeast": Movement.DIR_NORTHEAST,
+                 "ne": Movement.DIR_NORTHEAST,
+                 "southeast": Movement.DIR_SOUTHEAST,
+                 "se": Movement.DIR_SOUTHEAST,
+                 "southwest": Movement.DIR_SOUTHWEST,
+                 "sw": Movement.DIR_SOUTHWEST,
+                 "northwest": Movement.DIR_NORTHWEST,
+                 "nw": Movement.DIR_NORTHWEST},
+            CommandTypes.SYSTEM_ACTION:
+                {"say": SystemAction.SYS_SAY,
+                 "quit": SystemAction.SYS_QUIT},
+            CommandTypes.INFO_REQUEST:
+                {"look": InfoRequest.INFO_ROOM, "l": InfoRequest.INFO_ROOM,
+                 "players": InfoRequest.INFO_PLAYERS,
+                 "map": InfoRequest.INFO_MAP,
+                 "commands": InfoRequest.INFO_COMMANDS,
+                 "?": InfoRequest.INFO_COMMANDS,
+                 "help": InfoRequest.INFO_COMMANDS},
+            CommandTypes.ROOM_CHANGE:
+                {"mkroom": RoomChange.ROOM_ADD,
+                 "rmroom": RoomChange.ROOM_REMOVE,
+                 "setrname": RoomChange.ROOM_SET_NAME,
+                 "setrdesc": RoomChange.ROOM_SET_DESC,
+                 "setrexit": RoomChange.ROOM_SET_EXIT,
+                 "setrflag": RoomChange.ROOM_SET_FLAG},
+            CommandTypes.TRAVEL_ACTION:
+                {"goto": TravelAction.TRAVEL_GOTO,
+                 "swap": TravelAction.TRAVEL_SWAP}
+        }
 
 
-def get_available_commands(void):
+def get_command_info(command):
+    newCommand = Command()
+    commandList = Command.getCompleteList();
+    for commandType in list(commandList):
+        commands = commandList[commandType]
+        if command in commands.values():
+            newCommand.type = commandType
+            newCommand.subtype = commands[command]
+            break
+
+    print("newCommand: " + newCommand)
+    return newCommand
+
+
+def get_available_commands():
     num = 0
     for i in Command.commandList.keys():
         num += Command.commandList[i].len

@@ -1,4 +1,4 @@
-from src.commands.CommandClasses import CommandTypes
+from src.commands.CommandClasses import CommandTypes, get_command_info
 from src.commands.CommandExecutor import do_cmd_action
 from src.io import OutputBuilder
 from src.io.IncomingHandler import check_if_name_is_valid, \
@@ -20,7 +20,7 @@ def interpret_command(player):
     print("player command: " + command)
     commandInfo = get_command_info(command)
 
-    if not_waiting_for_player_response:
+    if player.holding_for_input is False:
         if commandInfo.type == CommandTypes.COMMAND_NOT:
             print_to_player(player, PrintArg.INVALCMD)
             return 1
