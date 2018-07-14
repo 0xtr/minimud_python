@@ -46,7 +46,7 @@ def link_rooms(dir, existing, newroom):
          "x": existing.x, "y": existing.y, "z": existing.z},
         SQLiteHelper.DBTypes.ROOM_DB)
 
-    if result.results is None:
+    if result.results() is None:
         return 1
 
     result = SQLiteHelper.SQLExecution(
@@ -55,7 +55,7 @@ def link_rooms(dir, existing, newroom):
          "x": newroom.x, "y": newroom.y, "z": newroom.z},
         SQLiteHelper.DBTypes.ROOM_DB)
 
-    if result.results is None:
+    if result.results() is None:
         return 1
 
 
@@ -66,7 +66,7 @@ def unlink_rooms(direction, existing, newroom):
          "z": existing.z},
         SQLiteHelper.DBTypes.ROOM_DB)
 
-    if result.results is None:
+    if result.results() is None:
         return 1
 
     result = SQLiteHelper.SQLExecution(
@@ -75,7 +75,7 @@ def unlink_rooms(direction, existing, newroom):
          "y": newroom.y, "z": newroom.z},
         SQLiteHelper.DBTypes.ROOM_DB)
 
-    if result.results is None:
+    if result.results() is None:
         return 1
 
     return 0
@@ -97,21 +97,21 @@ def insert_room(rconfig):
          "flags": rconfig.flags},
         SQLiteHelper.DBTypes.ROOM_DB)
 
-    if result.results is None:
+    if result.results() is None:
         return None
 
     return lookup_room(rconfig.coords)
 
 
 def remove_room(player):
-    roomResult = lookup_room(player.coords);
+    roomResult = lookup_room(player.coords)
     if roomResult is None:
         return -1
 
-    if roomResult.owner is not player.name:
+    if roomResult.results().owner is not player.name:
         return -2
 
-    check_exits_and_adjust(player.coords, roomResult)
+    check_exits_and_adjust(player.coords, roomResult.results())
 
     queryResult = SQLiteHelper.SQLExecution(
         "DELETE FROM ROOMS WHERE x = :x AND y = :y AND z = :z",
@@ -142,7 +142,7 @@ def check_exits_and_adjust(coords, room):
         print("finding linked room: id " + str(roomResult.rid))
         actual = exit_to_dir(i)
         print("removing link " + str(actual) + " " + get_dir_str(actual))
-        unlink_rooms(actual, room, roomResult)
+        unlink_rooms(actual, room, roomResult.results())
 
     assert remove_players_from_room(coords, room) == 0
 
@@ -220,10 +220,10 @@ def lookup_room_exits(origin, dest_room):
     if origin_room is None:
         return -2
 
-    if has_exit_for_dir(origin_room, dest_room) is 1:
-        rv = -1
+    if has_exit_for_dir(origin_room.results(), dest_room) is 1:
+        return -1
 
-    return rv
+    return 0
 
 
 def has_exit_for_dir(origin, dest):
@@ -240,7 +240,7 @@ def lookup_room_name_from_coords(player, coords):
     roomResult = lookup_room(coords)
 
     if roomResult is not None:
-        player.buffer = roomResult.name
+        player.buffer = roomResult.results().name
     else:
         player.buffer = "NULL SPACE"
 
@@ -250,7 +250,7 @@ def lookup_room_name_from_coords(player, coords):
 def compare_room_owner(player, coords):
     roomResult = lookup_room(coords)
 
-    if player.name is map.owner:
+    if player.name is roomResult.results().owner:
         return 1
 
     return 0
@@ -258,38 +258,38 @@ def compare_room_owner(player, coords):
 
 def get_dir_str_opposite(direction):
     dirToString = {
-        SpaceClasses.Direction.NORTH, "south",
-        SpaceClasses.Direction.EAST, "west",
-        SpaceClasses.Direction.SOUTH, "north",
-        SpaceClasses.Direction.WEST, "east",
-        SpaceClasses.Direction.UP, "down",
-        SpaceClasses.Direction.DOWN, "up",
-        SpaceClasses.Direction.NORTHEAST, "southwest",
-        SpaceClasses.Direction.SOUTHEAST, "northwest",
-        SpaceClasses.Direction.SOUTHWEST, "northeast",
-        SpaceClasses.Direction.NORTHWEST, "southeast",
+        SpaceClasses.Direction.NORTH: "south",
+        SpaceClasses.Direction.EAST: "west",
+        SpaceClasses.Direction.SOUTH: "north",
+        SpaceClasses.Direction.WEST: "east",
+        SpaceClasses.Direction.UP: "down",
+        SpaceClasses.Direction.DOWN: "up",
+        SpaceClasses.Direction.NORTHEAST: "southwest",
+        SpaceClasses.Direction.SOUTHEAST: "northwest",
+        SpaceClasses.Direction.SOUTHWEST: "northeast",
+        SpaceClasses.Direction.NORTHWEST: "southeast",
     }
-    if direction in dirToString:
-        return dirToString[direction]
+    if direction in list(dirToString.values()):
+        return list(dirToString.values())[direction]
 
     return "nowhere"
 
 
 def get_dir_str(direction):
     dirToString = {
-        SpaceClasses.Direction.NORTH, "north",
-        SpaceClasses.Direction.EAST, "east",
-        SpaceClasses.Direction.SOUTH, "south",
-        SpaceClasses.Direction.WEST, "west",
-        SpaceClasses.Direction.UP, "up",
-        SpaceClasses.Direction.DOWN, "down",
-        SpaceClasses.Direction.NORTHEAST, "northeast",
-        SpaceClasses.Direction.SOUTHEAST, "southeast",
-        SpaceClasses.Direction.SOUTHWEST, "southwest",
-        SpaceClasses.Direction.NORTHWEST, "northwest",
+        SpaceClasses.Direction.NORTH: "north",
+        SpaceClasses.Direction.EAST: "east",
+        SpaceClasses.Direction.SOUTH: "south",
+        SpaceClasses.Direction.WEST: "west",
+        SpaceClasses.Direction.UP: "up",
+        SpaceClasses.Direction.DOWN: "down",
+        SpaceClasses.Direction.NORTHEAST: "northeast",
+        SpaceClasses.Direction.SOUTHEAST: "southeast",
+        SpaceClasses.Direction.SOUTHWEST: "southwest",
+        SpaceClasses.Direction.NORTHWEST: "northwest",
     }
-    if direction in dirToString:
-        print("movement string is " + dirToString[direction])
-        return dirToString[direction]
+    if direction in list(dirToString.values()):
+        print("movement string is " + list(dirToString.values())[direction])
+        return list(dirToString.values())[direction]
 
     return "nowhere"

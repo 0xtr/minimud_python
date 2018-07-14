@@ -62,7 +62,7 @@ def interpret_command(player):
 
 
 def alter_room_links(player, command):
-    if (ensure_player_moving_valid_dir(player, command)) == SpaceClasses.EXIT_FAILURE:
+    if (ensure_player_moving_valid_dir(player, command)) == 1:
         reset_player_state(player)
         return 1
 

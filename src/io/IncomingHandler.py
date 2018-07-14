@@ -1,5 +1,3 @@
-from fcntl import ioctl
-
 from src.commands import CommandClasses
 from src.commands.CommandInterpreter import interpret_command
 from src.io.OutgoingHandler import OutgoingDefs

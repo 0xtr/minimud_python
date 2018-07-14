@@ -26,7 +26,7 @@ class PlayerLiveRecord:
     name = ''
     buffer = ''
     store = ''
-    inventory = Inventory()
+    inventory = Inventory
 
 
 def get_player(socket):

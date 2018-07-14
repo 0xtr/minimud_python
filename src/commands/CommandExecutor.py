@@ -1,177 +1,145 @@
-# include "do_cmd_action.h"
-
-def do_cmd_action(struct player_live_record * player, struct
-
-
-command * info):
-if (info->type == MOVEMENT)
-    do_movement_cmd(player, info);
-
-if (info->type == SYSTEM_ACTION)
-    do_system_cmd(player, info);
-
-if (info->type == ROOM_CHANGE)
-    do_room_cmd(player, info);
-
-if (info->type == TRAVEL_ACTION)
-    do_travel_cmd(player, info);
-
-if (info->type == INFO_REQUEST)
-    do_info_cmd(player, info);
-
-free(info);
-
-return EXIT_SUCCESS;
+from src.commands.CommandClasses import CommandTypes, SystemAction, InfoRequest, \
+    RoomChange, Movement, TravelAction
+from src.io.IncomingHandler import shutdown_socket
+from src.io.OutputBuilder import print_player_speech, print_room_to_player, \
+    print_to_player, PrintArg
+from src.players.PlayerCRUD import adjust_player_location
+from src.players.PlayerManagementLive import PlayerWaitStates
+from src.rooms.RoomCRUD import lookup_room, lookup_room_exits
 
 
-def do_system_cmd(struct player_live_record * player, struct
+def do_cmd_action(player, info):
+    if info.type == CommandTypes.MOVEMENT:
+        do_movement_cmd(player, info)
+
+    if info.type == CommandTypes.SYSTEM_ACTION:
+        do_system_cmd(player, info)
+
+    if info.type == CommandTypes.ROOM_CHANGE:
+        do_room_cmd(player, info)
+
+    if info.type == CommandTypes.TRAVEL_ACTION:
+        do_travel_cmd(player, info)
+
+    if info.type == CommandTypes.INFO_REQUEST:
+        do_info_cmd(player, info)
+
+    return 0
 
 
-command * info):
-if (info->subtype == SYS_SAY) {
-print_player_speech(player);
-} else if (info->subtype == SYS_QUIT) {
-shutdown_socket(player);
-}
+def do_system_cmd(player, info):
+    if info.subtype == SystemAction.SYS_SAY:
+        print_player_speech(player)
+    elif info.subtype == SystemAction.SYS_QUIT:
+        shutdown_socket(player)
 
 
-def do_info_cmd(struct player_live_record * player, struct
+def do_info_cmd(player, info):
+    if info.subtype == InfoRequest.INFO_ROOM or info.subtype == InfoRequest.INFO_ROOM2:
+        roomResult = lookup_room(player.coords)
+        print_room_to_player(player, roomResult.results())
+
+    if info.subtype == InfoRequest.INFO_COMMANDS:
+        print_to_player(player, PrintArg.SHOWCMDS)
+    if info.subtype == InfoRequest.INFO_PLAYERS:
+        print_to_player(player, PrintArg.LISTPLAYERS)
+    if info.subtype == InfoRequest.INFO_MAP:
+        print("ADD ME\n")
 
 
-command * info):
-if (info->subtype == INFO_ROOM | | info->subtype == INFO_ROOM2) {
-struct room_db_record * room = lookup_room(get_player_coords(player));
-
-print_room_to_player(player, room);
-
-free(room);
-}
-
-if (info->subtype >= INFO_COMMANDS & & info->subtype <= INFO_COMMANDS3)
-    print_to_player(player, SHOWCMDS);
-if (info->subtype == INFO_PLAYERS)
-    print_to_player(player, LISTPLAYERS);
-if (info->subtype == INFO_MAP)
-    print("ADD ME\n");
-
-
-def do_room_cmd(struct player_live_record * player, struct
-
-
-command * info):
-if (info->subtype == ROOM_SET_NAME) {
-print_to_player(player, PRINT_PROVIDE_NEW_ROOM_NAME);
-player->holding_for_input = 1;
-player->wait_state = WAIT_ENTER_NEW_ROOM_NAME;
-} else if (info->subtype == ROOM_SET_DESC) {
-print_to_player(player, PRINT_PROVIDE_NEW_ROOM_DESC);
-player->wait_state = WAIT_ENTER_NEW_ROOM_DESC;
-player->holding_for_input = 1;
-} else if (info->subtype == ROOM_SET_EXIT) {
-print_to_player(player, PRINT_PROVIDE_ROOM_EXIT_NAME);
-player->wait_state = WAIT_ENTER_EXIT_NAME;
-player->holding_for_input = 1;
-} else if (info->subtype == ROOM_SET_FLAG) {
-print_to_player(player, PRINT_PROVIDE_ROOM_FLAG_NAME);
-player->wait_state = WAIT_ENTER_FLAG_NAME;
-player->holding_for_input = 1;
-} else if (info->subtype == ROOM_MK) {
-print_to_player(player, PRINT_ROOM_CREATION_GIVE_DIR);
-player->wait_state = WAIT_ROOM_CREATION_DIR;
-player->holding_for_input = 1;
-} else if (info->subtype == ROOM_RM) {
-print_to_player(player, PRINT_ROOM_REMOVAL_CHECK);
-player->wait_state = WAIT_ROOM_REMOVAL_CHECK;
-player->holding_for_input = 1;
-}
+def do_room_cmd(player, info):
+    if info.subtype == RoomChange.ROOM_SET_NAME:
+        print_to_player(player, PrintArg.PRINT_PROVIDE_NEW_ROOM_NAME)
+        player.holding_for_input = 1
+        player.wait_state = PlayerWaitStates.WAIT_ENTER_NEW_ROOM_NAME
+    elif info.subtype == RoomChange.ROOM_SET_DESC:
+        print_to_player(player, PrintArg.PRINT_PROVIDE_NEW_ROOM_DESC)
+        player.wait_state = PlayerWaitStates.WAIT_ENTER_NEW_ROOM_DESC
+        player.holding_for_input = True
+    elif info.subtype == RoomChange.ROOM_SET_EXIT:
+        print_to_player(player, PrintArg.PRINT_PROVIDE_ROOM_EXIT_NAME)
+        player.wait_state = PlayerWaitStates.WAIT_ENTER_EXIT_NAME
+        player.holding_for_input = True
+    elif info.subtype == RoomChange.ROOM_SET_FLAG:
+        print_to_player(player, PrintArg.PRINT_PROVIDE_ROOM_FLAG_NAME)
+        player.wait_state = PlayerWaitStates.WAIT_ENTER_FLAG_NAME
+        player.holding_for_input = True
+    elif info.subtype == RoomChange.ROOM_MK:
+        print_to_player(player, PrintArg.PRINT_ROOM_CREATION_GIVE_DIR)
+        player.wait_state = PlayerWaitStates.WAIT_ROOM_CREATION_DIR
+        player.holding_for_input = True
+    elif info.subtype == RoomChange.ROOM_RM:
+        print_to_player(player, PrintArg.PRINT_ROOM_REMOVAL_CHECK)
+        player.wait_state = PlayerWaitStates.WAIT_ROOM_REMOVAL_CHECK
+        player.holding_for_input = True
 
 
-def do_movement_cmd(struct player_live_record * player, struct
+def do_movement_cmd(player, info):
+    dir = Movement.DIR_NOT
+    origin = player.coords
+    destination = {0}
 
+    if info.subtype == Movement.DIR_NORTH:
+        dir = Movement.DIR_NORTH
+        destination.y = origin.y + 1
+    elif info.subtype == Movement.DIR_EAST:
+        dir = Movement.DIR_EAST
+        destination.x = origin.x + 1
+    elif info.subtype == Movement.DIR_SOUTH:
+        dir = Movement.DIR_SOUTH
+        destination.y = origin.y - 1
+    elif info.subtype == Movement.DIR_WEST:
+        dir = Movement.DIR_WEST
+        destination.x = origin.x - 1
+    elif info.subtype == Movement.DIR_DOWN:
+        dir = Movement.DIR_DOWN
+        destination.z = origin.z - 1
+    elif info.subtype == Movement.DIR_UP:
+        dir = Movement.DIR_UP
+        destination.z = origin.z + 1
+    elif info.subtype == Movement.DIR_NORTHWEST:
+        dir = Movement.DIR_NORTHWEST
+        destination.x = origin.x - 1
+        destination.y = origin.y + 1
+    elif info.subtype == Movement.DIR_NORTHEAST:
+        dir = Movement.DIR_NORTHEAST
+        destination.x = origin.x + 1
+        destination.y = origin.y + 1
+    elif info.subtype == Movement.DIR_SOUTHWEST:
+        dir = Movement.DIR_SOUTHWEST
+        destination.x = origin.x - 1
+        destination.y = origin.y - 1
+    elif info.subtype == Movement.DIR_SOUTHEAST:
+        dir = Movement.DIR_SOUTHEAST
+        destination.x = origin.x + 1
+        destination.y = origin.y - 1
 
-command * info):
-int32_t
-dir = 0;
-int32_t
-rv = 0;
-struct
-coordinates
-origin = get_player_coords(player);
-struct
-coordinates
-destination = {0};
+    dest_room = lookup_room(destination)
+    if dest_room is None:
+        print("oh no")
+        # do something
 
-// destination.x = destination.y = destination.z = 0;
+    rv = lookup_room_exits(origin, dest_room)
 
-if (is_dir(info->subtype, DIR_NORTH)) {
-dir = DIR_NORTH;
-destination.y = origin.y + 1;
-} else if (is_dir(info->subtype, DIR_EAST)) {
-dir = DIR_EAST;
-destination.x = origin.x + 1;
-} else if (is_dir(info->subtype, DIR_SOUTH)) {
-dir = DIR_SOUTH;
-destination.y = origin.y - 1;
-} else if (is_dir(info->subtype, DIR_WEST)) {
-dir = DIR_WEST;
-destination.x = origin.x - 1;
-} else if (is_dir(info->subtype, DIR_DOWN)) {
-dir = DIR_DOWN;
-destination.z = origin.z - 1;
-} else if (is_dir(info->subtype, DIR_UP)) {
-dir = DIR_UP;
-destination.z = origin.z + 1;
-} else if (is_dir(info->subtype, DIR_NORTHWEST)) {
-dir = DIR_NORTHWEST;
-destination.x = origin.x - 1;
-destination.y = origin.y + 1;
-} else if (is_dir(info->subtype, DIR_NORTHEAST)) {
-dir = DIR_NORTHEAST;
-destination.x = origin.x + 1;
-destination.y = origin.y + 1;
-} else if (is_dir(info->subtype, DIR_SOUTHWEST)) {
-dir = DIR_SOUTHWEST;
-destination.x = origin.x - 1;
-destination.y = origin.y - 1;
-} else if (is_dir(info->subtype, DIR_SOUTHEAST)) {
-dir = DIR_SOUTHEAST;
-destination.x = origin.x + 1;
-destination.y = origin.y - 1;
-}
+    if rv == -1:
+        print_to_player(player, PrintArg.PRINT_INVAL_DIR)
+        return
+    elif rv == -2:
+        # send them back to origin room, somewhere they shouldn't be
+        print_to_player(player, PrintArg.PRINT_INVAL_DIR)
+        destination.x = 0
+        destination.y = 0
+        destination.z = 0
+        # check this
 
-struct
-room_db_record * dest_room = lookup_room(destination);
-if (dest_room == NULL) {
-// do something
-}
-rv = lookup_room_exits(origin, dest_room);
-
-if (rv == -1) {
-rv = print_to_player(player, INVALDIR);
-return;
-} else if (
-        rv == -2) {// send them back to origin room, somewhere they shouldn't be
-rv = print_to_player(player, INVALDIR);
-destination.x = 0;
-destination.y = 0;
-destination.z = 0;
-}
-
-rv = print_to_player(player, dir);
-if (rv == 0)
-{
-adjust_player_location(player, dest_room->id);
-
-print_room_to_player(player, dest_room);
-}
-
-if (dest_room != NULL)
-free(dest_room);
+    print_to_player(player, dir)
+    adjust_player_location(player, dest_room.id)
+    print_room_to_player(player, dest_room)
 
 
 def do_travel_cmd(player, info):
-    if (info.subtype == TRAVEL_GOTO)
-        print("ADD ME %d\n", player->socket_num);
+    if info.subtype == TravelAction.TRAVEL_GOTO:
+        print("ADD ME %d\n", player.socket_num)
 
-        if (info.subtype == TRAVEL_SWAP)
-            print("ADD ME %d\n", player->socket_num);
+    if info.subtype == TravelAction.TRAVEL_SWAP:
+        print("ADD ME %d\n", player.socket_num)

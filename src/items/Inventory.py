@@ -1,6 +1,9 @@
 class Inventory:
     itemCount = 0
 
+    def __init__(self):
+        print("")
+
 
 class Object:
     id = 0

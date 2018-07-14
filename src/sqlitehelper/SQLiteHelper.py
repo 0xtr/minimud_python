@@ -8,12 +8,6 @@ class DBTypes(Enum):
     ROOM_DB = auto()
     PLAYER_DB = auto()
     OBJ_DB = auto()
-    # move to sql manager
-    dbLocations = {
-        ROOM_DB, "roomdb.db",
-        PLAYER_DB, "playerdb.db",
-        OBJ_DB, "objdb.db"
-    }
 
 
 class QueryResult:
@@ -22,11 +16,15 @@ class QueryResult:
     def __init__(self, results):
         self.results = results
 
+    def results(self):
+        return self.results
+
 
 class SQLExecution:
     query = ''
     queryArgs = ''
     dbToRunOn = []
+    queryResult = None
 
     def __init__(self, query, queryArgs, dbToRunOn):
         self.query = query
@@ -44,17 +42,26 @@ class SQLExecution:
         cursor.execute(self.query, self.queryArgs)
         print("results for [" + self.query + "]: " + cursor.fetchall);
 
-        return QueryResult(cursor.fetchall())
+        self.queryResult = QueryResult(cursor.fetchall())
+        return self
+
+    def results(self):
+        return self.queryResult
 
 
 class SQLDBManager:
-    dbConnections = {}
+    dbLocations = {
+        DBTypes.ROOM_DB: "roomdb.db",
+        DBTypes.PLAYER_DB: "playerdb.db",
+        DBTypes.OBJ_DB: "objdb.db"
+    }
+    dbConnections = []
 
     # update with locs
     # CLEAN ME
-    def __init__(self, type, loc):
-        for i in len(DBTypes.dbLocations):
-            self.dbConnections.add(sqlite3.connect(DBTypes.dbLocations[i]))
+    def __init__(self, loc):
+        for i in self.dbLocations:
+            self.dbConnections.append(sqlite3.connect(DBTypes.dbLocations.value[i]))
 
         tables_needed = False
 
@@ -97,7 +104,7 @@ class SQLDBManager:
             "name TEXT, hash TEXT, salt TEXT, last_ip TEXT,"
             "loc_id INT)", {}, DBTypes.PLAYER_DB)
 
-        assert queryResult.results is not None
+        assert queryResult.results() is not None
 
     def open_objdb(self):
         queryResult = SQLExecution(
@@ -105,7 +112,7 @@ class SQLDBManager:
             "obj_name TEXT, obj_keywords TEXT, obj_desc TEXT, obj_createdby TEXT,"
             "obj_location INT, obj_playerid INT)", {}, DBTypes.OBJ_DB)
 
-        assert queryResult.results is not None
+        assert queryResult.results() is not None
 
     def open_roomdb(self):
         queryResult = SQLExecution(
@@ -118,4 +125,4 @@ class SQLDBManager:
             "owner TEXT, last_modified_by TEXT,"
             "flags TEXT)", {}, DBTypes.ROOM_DB)
 
-        assert queryResult.results is not None
+        assert queryResult.results() is not None
