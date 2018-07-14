@@ -1,233 +1,183 @@
-#define NUM_RESERVED_WORDS 5
+from fcntl import ioctl
+
+from src.commands import CommandClasses
+from src.commands.CommandInterpreter import interpret_command
+from src.io.OutgoingHandler import OutgoingDefs
+from src.io.OutputBuilder import print_to_player, PrintArg, print_room_to_player
+from src.players.PlayerCRUD import lookup_player, adjust_player_location, \
+    insert_player
+from src.players.PlayerManagementLive import ActivePlayers, PlayerWaitStates, \
+    reset_player_state, get_player, remove_player_by_socket
+
+import bcrypt
+
+from src.rooms.RoomCRUD import lookup_room, lookup_room_by_id
+
 
 def check_for_highest_socket_num():
-	struct player_live_record *tmp = get_player_head()
-	int32_t fdmax = 0
-	if (tmp == NULL)
-		return fdmax
+    sock_max = 0
+    for player in ActivePlayers.activePlayers:
+        if player.socket_num > sock_max:
+            sock_max = player.socket_num
 
-	while ((tmp = tmp->next) != NULL) {
-		if (tmp->socket_num > fdmax)
-			fdmax = tmp->socket_num
-	}
+    return sock_max
 
-	return fdmax
-}
 
 def check_player_pass(player, pw):
-	// TODO: do this and pass to insert_player
-	const size_t PASSWORD_LEN = (strlen((char *)pw) > BUFFER_LENGTH) ? BUFFER_LENGTH : strlen((char *)pw)
+    # TODO: do this and pass to insert_player
+    # what did past me even mean with that comment
+    buf_len = OutgoingDefs.BUFFER_LENGTH.value
+    PASSWORD_LEN = buf_len if (len(pw) > buf_len) else len(pw)
 
-	if (PASSWORD_LEN == 0) {
-		printf("pw len 0!\n")
-		return EXIT_FAILURE
-	}
+    if PASSWORD_LEN <= 1:
+        return 1
 
-	uint8_t *salt_and_pw = calloc(BUFFER_LENGTH + SALT_LENGTH, sizeof(uint8_t))
-	void *append_pw = mempcpy(salt_and_pw, player->salt, strlen((char *)player->salt))
-	append_pw = mempcpy(append_pw, pw, PASSWORD_LEN)
-	append_pw = mempcpy(append_pw, "\0", 1)
-	
-	uint8_t *hash_result = calloc(HASH_LENGTH, sizeof(uint8_t))
-	const int32_t rv = bcrypt_checkpass((char *)salt_and_pw, (char *)player->hash)
+    salt_and_pw = player.salt + pw
+    if not bcrypt.checkpw(salt_and_pw, player.hash):
+        return 1
+    else:
+        return 0
 
-	memset(hash_result, '\0', HASH_LENGTH)
-	free(hash_result)
-	memset(salt_and_pw, '\0', BUFFER_LENGTH + SALT_LENGTH)
-	free(salt_and_pw)
-
-	if (rv == -1)
-		return EXIT_FAILURE
-
-	return EXIT_SUCCESS
 
 def handle_existing_pass(player, command):
-	struct player_db_record *player_db = lookup_player(player->name)
+    player_db = lookup_player(player.name)
 
-	if (player_db == NULL) {
-		print_to_player(player, UNABLE_TO_RETRIEVE_CHAR)
-		player->wait_state = THEIR_NAME
-		return EXIT_FAILURE
-	}
+    if player_db is None:
+        print_to_player(player, PrintArg.UNABLE_TO_RETRIEVE_CHAR)
+        player.wait_state = PlayerWaitStates.THEIR_NAME
+        return 1
 
-	const int32_t pid = player_db->id
-	// clear pnames if this fails, cause failures are being logged
-	int32_t rv = check_player_pass(player_db, command)
-	free(player_db)
+    pid = player_db.id
+    # clear pnames if this fails, cause failures are being logged
+    # again, what
+    if not check_player_pass(player_db, command):
+        print_to_player(player, PrintArg.INCORRECT_PASSWORD)
+        player.name = ''
+        player.wait_state = PlayerWaitStates.THEIR_NAME
+        return 1
 
-	if (rv == EXIT_FAILURE) {
-		print_to_player(player, INCORRECT_PASSWORD)
-		memset(player->name, '\0', strlen((char *)player->name))
-		player->wait_state = THEIR_NAME
-		return EXIT_FAILURE
-	}
+    roomResult = lookup_room(player.coords)
 
-	struct coordinates coords = get_player_coords(player)
-	struct room_db_record *room = lookup_room(coords)
+    if roomResult is None:
+        assert adjust_player_location(player, 0) == 0
 
-	if (room == NULL)
-		assert(adjust_player_location(player, 0) == EXIT_SUCCESS)
+    player.id = pid
+    print_room_to_player(player, roomResult)
 
-	store_player_id(player, pid)
-	print_room_to_player(player, room)
-	free(room)
+    reset_player_state(player)
+    player.connected = True
 
-	reset_player_state(player)
-	player->connected = true
+    print("Player name " + player.name + " connected on socket " + str(
+        player.socket_num))
+    return 0
 
-	fprintf(stdout, "Player name %s connected on socket %d.\n", player->name, 
-			player->socket_num)
-
-	return EXIT_SUCCESS
-}
 
 def handle_new_pass(player, command):
-	if (strcmp((char *)command, (char *)player->store) != 0 || 
-	   (strlen((char *)command) != strlen((char *)player->store))) {
-		print_to_player(player, MISMATCH_PW_SET)
+    if command != player.store or len(command) != len(player.store):
+        print_to_player(player, PrintArg.MISMATCH_PW_SET)
 
-		player->wait_state = THEIR_NAME
-		clear_player_store(player)
-		return EXIT_FAILURE
-	}
+        player.wait_state = PlayerWaitStates.THEIR_NAME
+        player.store = ''
+        return 1
 
-	print_to_player(player, ATTEMPT_CREATE_USR)
+    print_to_player(player, PrintArg.ATTEMPT_CREATE_USR)
 
-	if (insert_player(player, command) == -1) {
-		print_to_player(player, PLAYER_CREATION_FAILED)
-		shutdown_socket(player)
-		return EXIT_FAILURE
-	}
+    if insert_player(player, command) == -1:
+        print_to_player(player, PrintArg.PLAYER_CREATION_FAILED)
+        shutdown_socket(player)
+        return 1
 
-	reset_player_state(player)
+    reset_player_state(player)
+    roomResult = lookup_room_by_id(0)
+    print_room_to_player(player, roomResult)
 
-	struct room_db_record *room = lookup_room_by_id(0)
+    print("Player name " + player.name + " connected on socket " + str(
+        player.socket_num))
+    return 0
 
-	print_room_to_player(player, room)
-
-	free(room)
-
-	fprintf(stdout, "Player name %s connected on socket %d.\n", player->name, 
-			player->socket_num)
-
-	return EXIT_SUCCESS
 
 def set_player_confirm_new_pw(player, command):
-	init_player_store(player)
+    player.store = command
+    print_to_player(player, PrintArg.REQUEST_PW_CONFIRM)
+    player.wait_state = PlayerWaitStates.THEIR_PASSWORD_NEWFINAL
+    return 0
 
-	set_player_store_replace(player, command)
-
-	print_to_player(player, REQUEST_PW_CONFIRM)
-
-	player->wait_state = THEIR_PASSWORD_NEWFINAL
-
-	return EXIT_SUCCESS
 
 def check_if_name_is_reserved(player, name):
-	for (size_t i = 0 i < NUM_RESERVED_WORDS; ++i) {
-		if (strcasecmp((char *)name, (char *)RESERVED_WORDS[i]) == 0) {
-			print_to_player(player, NAME_UNAVAILABLE)
-			print_to_player(player, NAME_NOT_WITHIN_PARAMS)
-			return true
-		}
-	}
+    commandList = CommandClasses.get_all_commands_as_strings()
+    for i in commandList:
+        if commandList[i] == name:
+            print_to_player(player, PrintArg.NAME_UNAVAILABLE)
+            print_to_player(player, PrintArg.NAME_NOT_WITHIN_PARAMS)
+            return True
 
-	for (size_t i = 0 i < get_num_of_available_cmds(); ++i) {
-		/*
-		if (memcmp(get_command(i), name, strlen((char *)name)) == 0) {
-			print_to_player(player, NAME_UNAVAILABLE)
-			print_to_player(player, NAME_NOT_WITHIN_PARAMS)
-			return true
-		}
-		*/
-	}
+    return False
 
-	return false
 
 def check_if_name_is_valid(player, name):
-	if (strlen((char *)name) > NAMES_MAX || strlen((char *)name) < NAMES_MIN) {
-		print_to_player(player, NAME_NOT_WITHIN_PARAMS)
-		return false
-	}
+    if len(name) > OutgoingDefs.PRINT_LINE_WIDTH.value or len(
+            name) < OutgoingDefs.NAMES_MIN.value:
+        print_to_player(player, PrintArg.NAME_NOT_WITHIN_PARAMS)
+        return False
 
-	for (size_t i = 0 i < NAMES_MAX; ++i) {
-		int32_t c = player->buffer[i]
-		if (c == 0)
-			break
+    for i in player.buffer:
+        c = player.buffer[i]
+        if c == 0:
+            break
 
-		if (!isalnum(c) && c != ' ')
-			return false
-	}
+        if not c.isalnum() and c != ' ':
+            return False
 
-	return true
+    return True
+
 
 def check_if_player_is_already_online(player, name):
-	print("num of players on %lu\n", get_num_of_players())
+    playersList = ActivePlayers.activePlayers
+    print("num of players on: " + playersList.__len__())
 
-	for (size_t i = 0 i < get_num_of_players(); ++i) {
-		if (memcmp(name, get_player_by_index(i)->name, strlen((char *)name)) != 0)
-			continue
+    for i in playersList.__len__():
+        if name != playersList[i].name:
+            continue
 
-		print_to_player(player, PLAYER_ALREADY_ONLINE)
+        print_to_player(player, PrintArg.PLAYER_ALREADY_ONLINE)
 
-		player->wait_state = THEIR_NAME
+        player.wait_state = PlayerWaitStates.THEIR_NAME
 
-		return true
-	}
+        return True
 
-	return false
+    return False
+
 
 def incoming_handler(socket):
-    int32_t retval;
-    int32_t incoming_data_len = 0;
+    bufLenMax = OutgoingDefs.BUFFER_LENGTH.value
+    buffer = len(socket.recv(bufLenMax, socket.MSG_PEEK))
+    print("peeked: " + str(buffer))
+    buffer = socket.recv(bufLenMax, 0)
 
-    ioctl (socket, FIONREAD, &incoming_data_len);
+    while len(socket.recv(bufLenMax, socket.MSG_PEEK)) > 0:
+        socket.recv(bufLenMax, 0)
 
-    uint8_t *buffer = calloc(incoming_data_len+1, sizeof(uint8_t));
+    player = get_player(socket)
 
-    retval = recv(socket, buffer, incoming_data_len, 0);
+    if len(buffer) == 0:
+        return shutdown_socket(player)
 
-    if (incoming_data_len > BUFFER_LENGTH)
-        memset(&buffer[BUFFER_LENGTH], 0, incoming_data_len - BUFFER_LENGTH);
+    player.buffer = buffer
 
-        struct player_live_record *player = get_player(socket);
-        clear_player_buffer(player);
-        set_player_buffer_replace(player, buffer);
+    strip_carriage_returns(player)
+    interpret_command(player)
 
-        free(buffer);
+    return 0
 
-        if (retval == 0) {
-        return shutdown_socket(player);
-        } else if (retval == -1) {
-        if (errno == EAGAIN)
-            return EXIT_SUCCESS;
-
-        perror("Problem receiving data");
-        return EXIT_FAILURE;
-    }
-
-    strip_carriage_returns(player);
-    interpret_command(player);
-
-    return EXIT_SUCCESS;
 
 def strip_carriage_returns(player):
-    for (size_t i = 0; i < strlen((char *)player->buffer); ++i) {
-    if (player->buffer[i] == '\r')
-    player->buffer[i] = '\0';
-    }
+    for i in range(0, len(player.buffer)):
+        if player.buffer[i] == '\r':
+            player.buffer[i] = '\0'
+
 
 def shutdown_socket(player):
-    if (shutdown(player->socket_num, SHUT_RDWR) == -1) {
-    if (errno != ENOTCONN) {
-    perror("Failed to shutdown a connection");
-    return EXIT_FAILURE;
-    }
-    }
-
-    if (epoll_ctl(get_epollfd(), EPOLL_CTL_DEL, player->socket_num, NULL) == -1)
-    perror("Failed to remove socket from epoll list");
-
-    remove_player_by_socket(player->socket_num);
-
-return EXIT_SUCCESS;
+    player.socket.shutdown(player.socket.SHUT_RDWR)
+    player.socket.close()
+    remove_player_by_socket(player.socket_num)
+    return 0

@@ -12,7 +12,7 @@ class PlayerWaitStates(Enum):
 
 
 class ActivePlayers:
-    activePlayers = []
+    activePlayers = list()
 
 
 class PlayerLiveRecord:

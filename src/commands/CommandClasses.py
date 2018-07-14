@@ -99,6 +99,16 @@ class Command:
         }
 
 
+def get_all_commands_as_strings():
+    stringList = []
+    commandList = Command.getCompleteList();
+    for commandType in list(commandList):
+        stringList.append(commandType.keys())
+
+    print("commands: " + stringList)
+    return stringList
+
+
 def get_command_info(command):
     newCommand = Command()
     commandList = Command.getCompleteList();

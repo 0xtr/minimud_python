@@ -14,7 +14,7 @@ dbManager = sqlitehelper.SQLDBManager()
 assert dbManager.init_dbs() == 0
 
 # create the master socket
-listen_socket = socket(socket.AF_INET, socket.SOCK_STREAM)
+listen_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 listen_socket.setblocking(0)
 
 # bind it to our chosen port
@@ -32,15 +32,17 @@ if socket.listen() != 0:
 iterate = True
 inputs = [listen_socket]
 outputs = []
-exceptional = []
+error = []
 
 while iterate:
     print("loop go")
     try:
-        inputs, outputs, exceptional = select.select(inputs, outputs, [])
+        inputs, outputs, error = select.select(inputs, outputs, error)
     except select.error as selError:
+        print(selError)
         break
     except socket.error as sockError:
+        print(sockError)
         break
 
     if inputs:

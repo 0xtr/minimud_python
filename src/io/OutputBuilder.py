@@ -149,7 +149,7 @@ def print_to_player(player, argument):
     return 0
 
 
-def set_buffer_for_movement (player, argument):
+def set_buffer_for_movement(player, argument):
     # use enums
     base = "You move "
     if argument == 0:
@@ -183,6 +183,7 @@ def set_buffer_for_movement (player, argument):
 def is_in_same_room(player, room_coords):
     playerCoords = player.coordinates
     return playerCoords.x == room_coords.x and playerCoords.y == room_coords.y and playerCoords.z == room_coords.z
+
 
 def print_room_to_player(player, room):
     player.buffer = "NULL SPACE" if not room.found else room.rname
@@ -238,8 +239,10 @@ def print_room_to_player(player, room):
 
     return 0
 
+
 def append_coordinates_for_printing(player, coords):
     player.buffer += " [" + coords.x + "][" + coords.y + "][" + coords.z + "]"
+
 
 def print_all_commands(player):
     commands_on_line = 0
@@ -272,6 +275,7 @@ def print_all_commands(player):
 
     return 0
 
+
 def greet_player(socket):
     player = PlayerManagementLive.get_player(socket)
     player.buffer = "WELCOME.\n\n"
@@ -280,6 +284,7 @@ def greet_player(socket):
 
     assert OutgoingHandler.send_and_handle_errors(player) == 0
     return 0
+
 
 def print_player_speech(player):
     # check string lengths etc when working
@@ -292,7 +297,8 @@ def print_player_speech(player):
 
     print("print_player_speech to others " + playerSpeech)
     player.buffer = "You say: " + baseSay
-    print("print_player_speech to them: " + player.buffer + " len " + len(player.buffer))
+    print("print_player_speech to them: " + player.buffer + " len " + len(
+        player.buffer))
 
     assert OutgoingHandler.send_and_handle_errors(player) == 0
     return 0

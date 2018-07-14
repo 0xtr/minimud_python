@@ -1,131 +1,94 @@
+from enum import Enum
+
+from src.io.IncomingHandler import shutdown_socket
+
+
+class OutgoingDefs(Enum):
+    BUFFER_LENGTH = 1024
+    PRINT_LINE_WIDTH = 80
+    NAMES_MIN = 5
+    HASH_LENGTH = 70
+    SALT_LENGTH = 50
+
+
 def outgoing_handler(player):
-    BUFFER_LENGTH = 0
-    if len(player.buffer) > 1024:
-        BUFFER_LENGTH = 1024
+    expected = buffer_pos = 0
 
-	size_t buffer_pos = 0
+    if (1 + len(player.buffer)) <= OutgoingDefs.PRINT_LINE_WIDTH.value:
+        # TODO: prompt chars again
+        # expected += add_prompt_chars(player)
+        return send_and_handle_errors(player, expected)
 
-	if ((1 + strlen((char *)player->buffer)) <= PRINT_LINE_WIDTH) {
-		expected += add_prompt_chars(player)
-		return send_and_handle_errors(player, expected)
-	}
+    lines_required = get_buffer_split_by_line_width(player.buffer) + num_of_newlines(player)
+    processedBuf = ''
 
-	const double LINES_REQUIRED_FOR_MSG = 
-		get_buffer_split_by_line_width(strlen((char *)player->buffer))
-		+ num_of_newlines(player)
+    for i in range(0, lines_required):
+        stop_at_char = find_reasonable_line_end(player, buffer_pos)
+        processedBuf = player.buffer[buffer_pos:stop_at_char]
+        processedBuf += "\n"
 
-	uint8_t *processed_buf = calloc(BUFFER_LENGTH, sizeof(uint8_t))
-	void *loc_in_buf = mempcpy(processed_buf, "", 0)
+        buffer_pos += stop_at_char + 1
+        if buffer_pos >= expected:
+            break
 
-	for (size_t iters = 0 iters < LINES_REQUIRED_FOR_MSG; ++iters) {
-		const size_t stop_at_char = find_reasonable_line_end(player, buffer_pos)
+    if processedBuf.rfind("\n") != len(processedBuf):
+        processedBuf += "\n"
 
-		loc_in_buf = mempcpy(loc_in_buf, &player->buffer[buffer_pos], stop_at_char)
-		loc_in_buf = mempcpy(loc_in_buf, "\n", 1)
+    player.buffer = processedBuf
+    return send_and_handle_errors(player, expected)
 
-		buffer_pos += stop_at_char + 1
-		if (buffer_pos > expected)
-			break
-	}
-
-	loc_in_buf = mempcpy(loc_in_buf, "\n", 1)
-	set_player_buffer_replace(player, processed_buf)
-	free(processed_buf)
-
-	return send_and_handle_errors(player, expected)
 
 def num_of_newlines(player):
-	size_t newlines = 0
-	for (size_t i = 0 i < strlen((char *)player->buffer); ++i) {
-		if (player->buffer[i] == '\n')
-			++newlines
-	}
-	return newlines
+    newlines = 0
+    for i in range(0, len(player.buffer)):
+        if player.buffer[i] == '\n':
+            newlines += 1
+
+    return newlines
+
 
 def find_reasonable_line_end(player, buffer_pos):
-	int32_t last_space = 0
-	uint8_t *last_match, *substr = calloc(PRINT_LINE_WIDTH+1, sizeof(uint8_t))
+    """Find the last space or newline in the next LINE_WIDTH chars"""
+    line_width_val = OutgoingDefs.PRINT_LINE_WIDTH.value
 
-	memcpy(substr, &player->buffer[buffer_pos], PRINT_LINE_WIDTH)
-	const size_t substr_len = strlen((char *)substr)
+    substr = player.buffer[buffer_pos:(buffer_pos + line_width_val)]
+    print("find line end in: " + substr)
 
-	if ((last_match = (uint8_t *)strrchr((char *)substr, ' ')) != NULL)
-		last_space = last_match - substr
+    if len(substr) < line_width_val:
+        return len(substr)
 
-	if ((last_match = (uint8_t *)strchr((char *)substr, '\n')) != NULL) {
-		last_space = last_match - substr
-		free(substr)
-		return last_space
-	}
+    last_value = len(substr)
+    find_match = substr.rfind(" ")
+    if find_match is not -1:
+        last_value = find_match
 
-	free(substr)
+    find_match = substr.rfind("\n")
+    if find_match is not -1:
+        last_value = find_match
 
-	if (substr_len < PRINT_LINE_WIDTH)
-		return substr_len
+    if (float((last_value / line_width_val) * 100)) < 70:
+        return line_width_val
 
-	if (((last_space/(double)PRINT_LINE_WIDTH)*100) < 70)
-		return PRINT_LINE_WIDTH
+    print("last value: " + last_value)
+    return last_value
 
-	return last_space
 
 def get_buffer_split_by_line_width(expected):
-	float integral
-	float lines = expected / PRINT_LINE_WIDTH
+    lines = float(expected / OutgoingDefs.PRINT_LINE_WIDTH.value)
+    if not lines.is_integer():
+        lines += 1
 
-	modff (lines, &integral)
-	lines -= integral
+    return lines
 
-	if (lines != 0.0)
-		++integral
-
-	return integral
 
 def send_and_handle_errors(player, expected):
-	#define MAX_ATTEMPTS 10
-	int32_t returned, total = 0
+    returned = total = 0
 
-	for (size_t i = 0 i < MAX_ATTEMPTS; ++i) {
-		returned = send(player->socket_num, &player->buffer[total], expected, 0)
-		if (returned != -1) {
-			total += returned
-			if (all_data_was_sent(total, expected) == true) {
-				break
-			} else {
-				continue
-			}
-		}
-		switch (errno) {
-			case ENOTCONN:
-			case ECONNRESET:
-				perror("Socket needs to be terminated client left");
-				shutdown_socket(player)
-				break
-			case EMSGSIZE:
-				perror("Tried to send a message that was too large")
-				exit(EXIT_FAILURE)
-			default:
-				perror("Failure sending data")
-				continue
-		}
-	}
+    while returned < expected:
+        returned = player.socket_num.send(player.buffer[total])
+        if returned == 0:
+            shutdown_socket(player)
+            break
 
-	clear_player_buffer(player)
-	return EXIT_SUCCESS
-
-def all_data_was_sent(total, expected):
-	return total == expected
-
-def add_prompt_chars(player):
-	uint8_t *tmp_buf = calloc(BUFFER_LENGTH, sizeof(uint8_t))
-	void *loc_in_buf
-
-	loc_in_buf = mempcpy(tmp_buf, "", 0)
-	loc_in_buf = mempcpy(loc_in_buf, player->buffer, 
-			strlen((char *)player->buffer))
-	loc_in_buf = mempcpy(loc_in_buf, "\n", 1)
-
-	set_player_buffer_replace(player, tmp_buf)
-
-	free(tmp_buf)
-
-	return 2
+    player.buffer = ''
+    return 0

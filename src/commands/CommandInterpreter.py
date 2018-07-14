@@ -1,6 +1,5 @@
 from src.commands.CommandClasses import CommandTypes, get_command_info
 from src.commands.CommandExecutor import do_cmd_action
-from src.io import OutputBuilder
 from src.io.IncomingHandler import check_if_name_is_valid, \
     check_if_name_is_reserved, check_if_player_is_already_online, \
     handle_existing_pass, set_player_confirm_new_pw, handle_new_pass
@@ -152,14 +151,14 @@ def handle_room_creation(player, command):
 
     if new is None:
         print_to_player(player, PrintArg.PRINT_ROOM_CREATION_FAILURE)
-        return;
+        return
 
     print_to_player(player, PrintArg.PRINT_ROOM_CREATION_SUCCESS)
 
     info = get_command_info(player.store)
     link_rooms(info.subtype, existing, new)
 
-    existing = lookup_room(player.coords
+    existing = lookup_room(player.coords)
     print_room_to_player(player, existing)
     reset_player_state(player)
 
@@ -215,7 +214,7 @@ def prepare_for_new_room_name(player, command):
 
 
 def prepare_for_room_mk(player, command):
-    if (ensure_player_moving_valid_dir(player, command)) is 1:
+    if ensure_player_moving_valid_dir(player, command) is 1:
         reset_player_state(player)
         return
 
@@ -226,5 +225,5 @@ def prepare_for_room_mk(player, command):
 
 
 def prepare_for_room_rm(player):
-    OutputBuilder.print_to_player(player, PrintArg.PRINT_ROOM_REMOVAL_CONFIRM)
+    print_to_player(player, PrintArg.PRINT_ROOM_REMOVAL_CONFIRM)
     player.wait_state = PlayerWaitStates.WAIT_ROOM_REMOVAL_CONFIRM
