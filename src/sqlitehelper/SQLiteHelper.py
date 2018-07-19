@@ -11,13 +11,13 @@ class DBTypes(Enum):
 
 
 class QueryResult:
-    results = []
+    res = []
 
     def __init__(self, results):
         self.results = results
 
     def results(self):
-        return self.results
+        return self.res
 
 
 class SQLExecution:
@@ -30,26 +30,28 @@ class SQLExecution:
         self.query = query
         self.queryArgs = queryArgs
         self.dbToRunOn = dbToRunOn
+        self.run()
 
-    def run(self, data):
+    def run(self):
         print("sql " + self.query)
 
-        conn = SQLDBManager.dbConnections[self.dbToRunOn]
+        conn = SQLDBConnector.dbConnections[self.dbToRunOn]
         print("conn " + conn)
         assert conn
         cursor = conn.cursor()
         # is it okay if queryargs is empty to do this
         cursor.execute(self.query, self.queryArgs)
-        print("results for [" + self.query + "]: " + cursor.fetchall);
+        print("results for [" + self.query + "]: " + cursor.fetchall)
 
         self.queryResult = QueryResult(cursor.fetchall())
+        print(QueryResult(cursor.fetchall()))
         return self
 
     def results(self):
         return self.queryResult
 
 
-class SQLDBManager:
+class SQLDBConnector:
     dbLocations = {
         DBTypes.ROOM_DB: "roomdb.db",
         DBTypes.PLAYER_DB: "playerdb.db",
@@ -59,29 +61,29 @@ class SQLDBManager:
 
     # update with locs
     # CLEAN ME
-    def __init__(self, loc):
-        for i in self.dbLocations:
-            self.dbConnections.append(sqlite3.connect(DBTypes.dbLocations.value[i]))
+    def __init__(self):
+        tables_needed = True
+        for val in list(self.dbLocations.values()):
+            print(val)
+            if os.path.exists(val) and os.path.isdir(val):
+                tables_needed = False
+            else:
+                if not os.path.exists("dbs"):
+                    os.makedirs("dbs")
 
-        tables_needed = False
-
-        if os.path.exists(loc) and os.path.isdir(loc):
-            tables_needed = True
-        else:
-            os.makedir("dbs")
-
-        conn = sqlite3.connect(loc)
-        assert conn
+            self.dbConnections.append(sqlite3.connect(val))
 
         if tables_needed:
-            self.create_player_table()
-            self.create_obj_table()
-            self.create_room_table()
+            self.open_objdb()
+            self.open_playerdb()
+            self.open_roomdb()
             self.insert_base_room()
 
-        return 0
+    def connectedToAllDatabases(self):
+        return len(self.dbConnections) == len(self.dbLocations)
 
-    def insert_base_room(self):
+    @staticmethod
+    def insert_base_room():
         coords = 0, 0, 0
         room = RoomCRUD.lookup_room(coords)
         if room.id > 0:
@@ -98,7 +100,8 @@ class SQLDBManager:
         result = RoomCRUD.insert_room(rconfig)
         assert result.id == 1
 
-    def open_playerdb(self):
+    @staticmethod
+    def open_playerdb():
         queryResult = SQLExecution(
             "CREATE TABLE PLAYERS (id PRIMARY KEY AUTOINCREMENT,"
             "name TEXT, hash TEXT, salt TEXT, last_ip TEXT,"
@@ -106,15 +109,17 @@ class SQLDBManager:
 
         assert queryResult.results() is not None
 
-    def open_objdb(self):
+    @staticmethod
+    def open_objdb():
         queryResult = SQLExecution(
-            "CREATE TABLE OBJECTS (id INTEGER PRIMARY KEY AUTOINCREMENT,"
+            "CREATE TABLE OBJECTS (id INTEGER PRIMARY KEY AUTOINCREMENT, "
             "obj_name TEXT, obj_keywords TEXT, obj_desc TEXT, obj_createdby TEXT,"
-            "obj_location INT, obj_playerid INT)", {}, DBTypes.OBJ_DB)
+            " obj_location INT, obj_playerid INT)", {}, DBTypes.OBJ_DB)
 
         assert queryResult.results() is not None
 
-    def open_roomdb(self):
+    @staticmethod
+    def open_roomdb():
         queryResult = SQLExecution(
             "CREATE TABLE ROOMS (id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "name TEXT, desc TEXT, "

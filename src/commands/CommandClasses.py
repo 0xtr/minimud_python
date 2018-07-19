@@ -119,7 +119,7 @@ def get_command_info(command):
             newCommand.subtype = commands[command]
             break
 
-    print("newCommand: " + newCommand)
+    print("newCommand: " + newCommand.type)
     return newCommand
 
 

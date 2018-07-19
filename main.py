@@ -4,33 +4,33 @@ import sys
 import select
 
 # get a suitable port
-from src import sqlitehelper
+from src.sqlitehelper import SQLiteHelper
 
 port = random.randint(5000, 6000)
 print("Use port " + str(port) + " for connections\n")
 
 # open the sqlite3 dbs
-dbManager = sqlitehelper.SQLDBManager()
-assert dbManager.init_dbs() == 0
+dbManager = SQLiteHelper.SQLDBConnector()
+assert dbManager.connectedToAllDatabases
 
 # create the master socket
-listen_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-listen_socket.setblocking(0)
+listen = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+listen.setblocking(0)
 
 # bind it to our chosen port
 try:
-    socket.bind(listen_socket, '')
+    listen.bind(("None", port))
 except Exception as e:
     print(e.args)
     sys.exit(1)
 
 # set listener for connections
-if socket.listen() != 0:
+if listen.listen() != 0:
     print("Listening for connections failed")
     sys.exit(1)
 
 iterate = True
-inputs = [listen_socket]
+inputs = [listen]
 outputs = []
 error = []
 
@@ -46,7 +46,7 @@ while iterate:
         break
 
     if inputs:
-        print("hello: " + len(inputs))
+        print("hello: " + str(len(inputs)))
         break
 
 print("minimud server exited")

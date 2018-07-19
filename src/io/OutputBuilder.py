@@ -1,5 +1,6 @@
 from enum import Enum, auto
 from src.io import OutgoingHandler
+from src.io.OutgoingHandler import OutgoingDefs
 from src.rooms import SpaceClasses
 from src.players import PlayerManagementLive
 from src.commands import CommandClasses
@@ -51,6 +52,8 @@ class PrintArg(Enum):
 
 
 def print_to_player(player, argument):
+    bufLenMax = OutgoingDefs.BUFFER_LENGTH.value
+    printLineMax = OutgoingDefs.PRINT_LINE_WIDTH.value
     if argument == PrintArg.PRINT_INVAL_CMD:
         player.buffer = "Invalid command. Type \'commands\'.\n"
     elif argument == PrintArg.SHOW_CMDS:
@@ -59,7 +62,7 @@ def print_to_player(player, argument):
         player.buffer = "Cannot move in that direction. Type 'look' to view room.\n"
     elif argument == PrintArg.REQUEST_PW_FOR_NEW:
         player.buffer = "You've provided the name [" + player.name + "].\n\n"
-        player.buffer += "Provide a password less than " + BUFFER_LENGTH_STR + " characters long.\n\n"
+        player.buffer += "Provide a password less than " + bufLenMax + " characters long.\n\n"
     elif argument == PrintArg.REQUEST_PW_CONFIRM:
         player.buffer = "Confirm your password by typing it out once more.\n"
     elif argument == PrintArg.REQUEST_PW_FOR_EXISTING:
@@ -83,13 +86,13 @@ def print_to_player(player, argument):
     elif argument == PrintArg.ALPHANUM_NAMES_ONLY:
         player.buffer = "Only alphanumeric characters are permitted.\n"
     elif argument == PrintArg.NAME_NOT_WITHIN_PARAMS:
-        player.buffer = "Provide an alphanumeric NAME that is at least " + NAMES_MIN_STR
-        player.buffer += " characters long, and no more than " + NAMES_MAX_STR
+        player.buffer = "Provide an alphanumeric NAME that is at least " + OutgoingDefs.NAMES_MIN.value
+        player.buffer += " characters long, and no more than " + printLineMax
         player.buffer += " characters. Try again.\n\nWhat is your NAME.\n"
     elif argument == PrintArg.PRINT_PROVIDE_NEW_ROOM_NAME:
-        player.buffer = "Enter a new room name, of up to " + MAX_ROOM_NAME_STR + " chars.\n"
+        player.buffer = "Enter a new room name, of up to " + printLineMax + " chars.\n"
     elif argument == PrintArg.PRINT_PROVIDE_NEW_ROOM_DESC:
-        player.buffer = "Enter a new room description, of up to " + BUFFER_LENGTH_STR + " chars.\n"
+        player.buffer = "Enter a new room description, of up to " + bufLenMax + " chars.\n"
     elif argument == PrintArg.PRINT_CONFIRM_NEW_ROOM_DESC:
         player.buffer = "Confirm the new description by typing Y/y. You entered:\n" + player.store
         player.buffer += "\nIf this is wrong, type something other than Y/y.\n\n"
@@ -145,8 +148,14 @@ def print_to_player(player, argument):
         if 0 <= argument <= 19:
             set_buffer_for_movement(player, argument)
 
-    assert OutgoingHandler.send_and_handle_errors(player) == 0
-    return 0
+    if OutgoingHandler.send_and_handle_errors(player, len(player.buffer)) == 0:
+        return 0
+    else:
+        command = CommandClasses.Command()
+        command.type = CommandClasses.SystemAction
+        command.subtype = CommandClasses.SystemAction.SYS_QUIT
+        CommandExecutor.do_cmd_action(player, command)
+        return 1
 
 
 def set_buffer_for_movement(player, argument):

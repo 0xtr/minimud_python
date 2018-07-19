@@ -1,7 +1,5 @@
 from enum import Enum
 
-from src.io.IncomingHandler import shutdown_socket
-
 
 class OutgoingDefs(Enum):
     BUFFER_LENGTH = 1024
@@ -87,8 +85,8 @@ def send_and_handle_errors(player, expected):
     while returned < expected:
         returned = player.socket_num.send(player.buffer[total])
         if returned == 0:
-            shutdown_socket(player)
-            break
+            player.buffer = ''
+            return 1
 
     player.buffer = ''
     return 0
