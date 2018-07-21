@@ -36,7 +36,6 @@ class SQLExecution:
         print("sql " + self.query)
 
         conn = SQLDBConnector.dbConnections[self.dbToRunOn]
-        print("conn " + conn)
         assert conn
         cursor = conn.cursor()
         # is it okay if queryargs is empty to do this
@@ -53,25 +52,22 @@ class SQLExecution:
 
 class SQLDBConnector:
     dbLocations = {
-        DBTypes.ROOM_DB: "roomdb.db",
-        DBTypes.PLAYER_DB: "playerdb.db",
-        DBTypes.OBJ_DB: "objdb.db"
+        DBTypes.ROOM_DB: "dbs/roomdb.db",
+        DBTypes.PLAYER_DB: "dbs/playerdb.db",
+        DBTypes.OBJ_DB: "dbs/objdb.db"
     }
-    dbConnections = []
+    dbConnections = {}
 
-    # update with locs
-    # CLEAN ME
     def __init__(self):
         tables_needed = True
-        for val in list(self.dbLocations.values()):
-            print(val)
-            if os.path.exists(val) and os.path.isdir(val):
+        for key, val in self.dbLocations.items():
+            if os.path.exists(val) and os.path.isdir("dbs"):
                 tables_needed = False
             else:
                 if not os.path.exists("dbs"):
                     os.makedirs("dbs")
 
-            self.dbConnections.append(sqlite3.connect(val))
+            self.dbConnections[key] = sqlite3.connect(val)
 
         if tables_needed:
             self.open_objdb()

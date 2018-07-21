@@ -52,7 +52,7 @@ def do_info_cmd(player, info):
     if info.subtype == InfoRequest.INFO_PLAYERS:
         print_to_player(player, PrintArg.LISTPLAYERS)
     if info.subtype == InfoRequest.INFO_MAP:
-        print("ADD ME\n")
+        print("ADD ME")
 
 
 def do_room_cmd(player, info):
