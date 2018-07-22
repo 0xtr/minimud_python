@@ -1,7 +1,7 @@
 import sqlite3
 import os
 from enum import Enum, auto
-from src.rooms import SpaceClasses, RoomCRUD
+from src.rooms import RoomClasses, RoomCRUD
 
 
 class DBTypes(Enum):
@@ -86,7 +86,7 @@ class SQLDBConnector:
             return 0
 
         # check that we have at least the origin room
-        rconfig = SpaceClasses.RoomBlueprint()
+        rconfig = RoomClasses.RoomBlueprint()
         rconfig.name = "The Core of the World"
         rconfig.desc = "It is pitch black. You are likely to be eaten by a null character."
         rconfig.coords = [0, 0, 0]

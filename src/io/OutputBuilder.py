@@ -1,59 +1,14 @@
-from enum import Enum, auto
-from src.io import OutgoingHandler
-from src.io.OutgoingHandler import OutgoingDefs
-from src.rooms import SpaceClasses
-from src.players import PlayerManagementLive
-from src.commands import CommandClasses
-
-
-class PrintArg(Enum):
-    PRINT_INVAL_CMD = auto()
-    PRINT_INVAL_DIR = auto()
-    PRINT_REQUEST_PW_FOR_NEW = auto()
-    PRINT_SHOW_CMDS = auto()
-    PRINT_REQUEST_PW_CONFIRM = auto()
-    PRINT_REQUEST_PW_FOR_EXISTING = auto()
-    PRINT_ATTEMPT_CREATE_USR = auto()
-    PRINT_MISMATCH_PW_SET = auto()
-    PRINT_PLAYER_CREATION_FAILED = auto()
-    PRINT_PLAYER_CREATION_SUCCESS = auto()
-    PRINT_PLAYER_ALREADY_ONLINE = auto()
-    PRINT_INCORRECT_PASSWORD = auto()
-    PRINT_UNABLE_TO_RETRIEVE_CHAR = auto()
-    PRINT_NAME_UNAVAILABLE = auto()
-    PRINT_ALPHANUM_NAMES_ONLY = auto()
-    PRINT_NAME_NOT_WITHIN_PARAMS = auto()
-    PRINT_PROVIDE_NEW_ROOM_NAME = auto()
-    PRINT_PROVIDE_NEW_ROOM_DESC = auto()
-    PRINT_CONFIRM_NEW_ROOM_DESC = auto()
-    PRINT_CONFIRM_NEW_ROOM_NAME = auto()
-    PRINT_ADJUSTMENT_SUCCESSFUL = auto()
-    PRINT_COULDNT_ADJUST_ROOM = auto()
-    PRINT_EXITING_CMD_WAIT = auto()
-    PRINT_INSUFFICIENT_PERMISSIONS = auto()
-    PRINT_ROOM_EXIT_CHANGED = auto()
-    PRINT_ROOM_FLAG_CHANGED = auto()
-    PRINT_ROOM_REMOVAL_CHECK = auto()
-    PRINT_ROOM_REMOVAL_CONFIRM = auto()
-    PRINT_ROOM_REMOVAL_SUCCESS = auto()
-    PRINT_ROOM_REMOVAL_FAILURE = auto()
-    PRINT_ROOM_CREATION_GIVE_DIR = auto()
-    PRINT_ROOM_CREATION_CONFIRMALL = auto()
-    PRINT_ROOM_CREATION_CANNOT = auto()
-    PRINT_ROOM_CREATION_SUCCESS = auto()
-    PRINT_ROOM_ALREADY_EXISTS = auto()
-    PRINT_ROOM_CREATION_FAILURE = auto()
-    PRINT_REMOVED_FROM_ROOM = auto()
-    PRINT_PROVIDE_ROOM_EXIT_NAME = auto()
-    PRINT_PROVIDE_ROOM_FLAG_NAME = auto()
-    PRINT_TOGGLED_ROOM_EXIT = auto()
-    PRINT_COULDNT_TOGGLE_EXIT = auto()
-    PRINT_COULDNT_EXIT_NO_ROOM = auto()
+from src.io import OutgoingHandler, CommandInterpreter
+from src.io.IODefs import IODefs
+from src.io.PrintArg import PrintArg
+from src.players.ActivePlayers import ActivePlayers
+from src.rooms import RoomClasses
+from src.players import PlayerManagement
 
 
 def print_to_player(player, argument):
-    bufLenMax = OutgoingDefs.BUFFER_LENGTH.value
-    printLineMax = OutgoingDefs.PRINT_LINE_WIDTH.value
+    bufLenMax = IODefs.BUFFER_LENGTH.value
+    printLineMax = IODefs.PRINT_LINE_WIDTH.value
     if argument == PrintArg.PRINT_INVAL_CMD:
         player.buffer = "Invalid command. Type \'commands\'.\n"
     elif argument == PrintArg.SHOW_CMDS:
@@ -86,7 +41,7 @@ def print_to_player(player, argument):
     elif argument == PrintArg.ALPHANUM_NAMES_ONLY:
         player.buffer = "Only alphanumeric characters are permitted.\n"
     elif argument == PrintArg.NAME_NOT_WITHIN_PARAMS:
-        player.buffer = "Provide an alphanumeric NAME that is at least " + OutgoingDefs.NAMES_MIN.value
+        player.buffer = "Provide an alphanumeric NAME that is at least " + IODefs.NAMES_MIN.value
         player.buffer += " characters long, and no more than " + printLineMax
         player.buffer += " characters. Try again.\n\nWhat is your NAME.\n"
     elif argument == PrintArg.PRINT_PROVIDE_NEW_ROOM_NAME:
@@ -148,18 +103,10 @@ def print_to_player(player, argument):
         if 0 <= argument <= 19:
             set_buffer_for_movement(player, argument)
 
-    if OutgoingHandler.send_and_handle_errors(player, len(player.buffer)) == 0:
-        return 0
-    else:
-        command = CommandClasses.Command()
-        command.type = CommandClasses.SystemAction
-        command.subtype = CommandClasses.SystemAction.SYS_QUIT
-        CommandExecutor.do_cmd_action(player, command)
-        return 1
+    return player, player.buffer
 
 
 def set_buffer_for_movement(player, argument):
-    # use enums
     base = "You move "
     if argument == 0:
         base += "NORTH.\n"
@@ -196,57 +143,45 @@ def is_in_same_room(player, room_coords):
 
 def print_room_to_player(player, room):
     player.buffer = "NULL SPACE" if not room.found else room.rname
-
     append_coordinates_for_printing(player, room.coords)
-    assert OutgoingHandler.send_and_handle_errors(player) == 0
+    player.buffer += "Exits:"
 
-    player.buffer = "Exits:"
-
-    if SpaceClasses.RoomExits.NORTH_EXIT in room.exits:
+    if RoomClasses.RoomExits.NORTH_EXIT in room.exits:
         player.buffer += " N"
-    if SpaceClasses.RoomExits.SOUTH_EXIT in room.exits:
+    if RoomClasses.RoomExits.SOUTH_EXIT in room.exits:
         player.buffer += " S"
-    if SpaceClasses.RoomExits.EAST_EXIT in room.exits:
+    if RoomClasses.RoomExits.EAST_EXIT in room.exits:
         player.buffer += " E"
-    if SpaceClasses.RoomExits.WEST_EXIT in room.exits:
+    if RoomClasses.RoomExits.WEST_EXIT in room.exits:
         player.buffer += " W"
-    if SpaceClasses.RoomExits.UP_EXIT in room.exits:
+    if RoomClasses.RoomExits.UP_EXIT in room.exits:
         player.buffer += " U"
-    if SpaceClasses.RoomExits.DOWN_EXIT in room.exits:
+    if RoomClasses.RoomExits.DOWN_EXIT in room.exits:
         player.buffer += " D"
-    if SpaceClasses.RoomExits.NORTHEAST_EXIT in room.exits:
+    if RoomClasses.RoomExits.NORTHEAST_EXIT in room.exits:
         player.buffer += " NE"
-    if SpaceClasses.RoomExits.SOUTHEAST_EXIT in room.exits:
+    if RoomClasses.RoomExits.SOUTHEAST_EXIT in room.exits:
         player.buffer += " SE"
-    if SpaceClasses.RoomExits.SOUTHWEST_EXIT in room.exits:
+    if RoomClasses.RoomExits.SOUTHWEST_EXIT in room.exits:
         player.buffer += " SW"
-    if SpaceClasses.RoomExits.NORTHWEST_EXIT in room.exits:
+    if RoomClasses.RoomExits.NORTHWEST_EXIT in room.exits:
         player.buffer += " NW"
 
     if len(player.buffer) == 6:
         player.buffer += " NONE"
 
-    assert OutgoingHandler.send_and_handle_errors(player) == 0
-
-    player.buffer = "It is pitch black. You are likely to be eaten by a grue." if room.found == False else room.rdesc
+    player.buffer = "\n\nIt is pitch black. You are likely to be eaten by a grue." if room.found is False else room.rdesc
 
     if room.rdesc and len(room.rdesc) > 0:
         player.buffer += "\n"
 
-    assert OutgoingHandler.send_and_handle_errors(player) == 0
-
-    for i in len(PlayerManagementLive.ActivePlayers):
-        each = PlayerManagementLive.ActivePlayers[i]
-
+    for each in ActivePlayers.activePlayers:
         if each.name == player.name:
             continue
-
         if is_in_same_room(each, room.coords):
             player.buffer = each.name + " is here too.\n"
-            # can be compressed instead of per loop
-            assert OutgoingHandler.send_and_handle_errors(player) == 0
 
-    return 0
+    return player, player.buffer
 
 
 def append_coordinates_for_printing(player, coords):
@@ -257,12 +192,7 @@ def print_all_commands(player):
     commands_on_line = 0
     player.buffer = "Available commands:\n"
 
-    for i in CommandClasses.get_total_available_commands():
-        cmd = CommandClasses.get_command_from_total_list(i)
-
-        if len(player.buffer) + len(cmd) > 1024:
-            assert OutgoingHandler.send_and_handle_errors(player) == 0
-
+    for cmd in CommandInterpreter.get_all_commands_as_strings():
         if len(player.buffer) == 0:
             player.buffer = cmd
         else:
@@ -273,56 +203,54 @@ def print_all_commands(player):
             if len(cmd) < 7:
                 player.buffer += "\t"
 
-        if commands_on_line == 5:
-            commands_on_line = 0
-            assert OutgoingHandler.send_and_handle_errors(player) == 0
-
     if len(player.buffer) != 0:
         player.buffer += "\n"
-
-    assert OutgoingHandler.send_and_handle_errors(player) == 0
 
     return 0
 
 
 def greet_player(socket):
-    player = PlayerManagementLive.get_player(socket)
+    player = PlayerManagement.get_player(socket)
     player.buffer = "WELCOME.\n\n"
-    player.buffer += "Please provide a NAME this can be two words and up to " + NAMES_MAX_STR
-    player.buffer += " characters long in total.\n\nIf you've already created a character, enter your previous name to resume.\n\n"
-
-    assert OutgoingHandler.send_and_handle_errors(player) == 0
-    return 0
+    player.buffer += "Please provide a NAME this can be two words and up to " \
+                     + IODefs.PRINT_LINE_WIDTH.value
+    player.buffer += " characters long in total.\n\nIf you've already created " \
+                     + "a character, enter your previous name to resume.\n\n"
+    return player, player.buffer
 
 
 def print_player_speech(player):
+    printActions = []
+
     # check string lengths etc when working
     SKIP_SAY_TOKEN = 4
     playerSpeech = player.name + " says: "
     baseSay = player.buffer[SKIP_SAY_TOKEN:]
     playerSpeech += baseSay
 
-    print_to_other_players(player, playerSpeech)
+    printActions.append((print_to_other_players(player), playerSpeech))
 
-    print("print_player_speech to others " + playerSpeech)
     player.buffer = "You say: " + baseSay
+    print("print_player_speech to others " + playerSpeech)
     print("print_player_speech to them: " + player.buffer + " len " + len(
         player.buffer))
 
-    assert OutgoingHandler.send_and_handle_errors(player) == 0
-    return 0
+    printActions.append((player, player.buffer))
+    return printActions
 
 
-def print_to_other_players(player, buffer):
-    for i in len(PlayerManagementLive.ActivePlayers):
-        otherPlayer = PlayerManagementLive[i]
+def print_to_other_players(player, speech):
+    printToPlayers = []
+
+    players = ActivePlayers.activePlayers
+    for i in players:
+        otherPlayer = i
         print("show it to player " + otherPlayer.name)
 
         if otherPlayer.socket_num == player.socket_num:
             continue
 
         if is_in_same_room(otherPlayer, player.coords):
-            otherPlayer.buffer = buffer + "\n"
-            assert OutgoingHandler.send_and_handle_errors(otherPlayer) == 0
+            printToPlayers.append((otherPlayer, speech))
 
-    return 0
+    return printToPlayers

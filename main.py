@@ -5,6 +5,8 @@ import select
 import pdb
 
 # get a suitable port
+from asyncio import Queue
+
 from src.io import IncomingHandler
 from src.sqlitehelper import SQLiteHelper
 
@@ -36,6 +38,7 @@ iterate = True
 inputs = [listensock]
 outputs = []
 error = []
+queuedMessages = {}
 
 while iterate:
     try:
@@ -49,12 +52,23 @@ while iterate:
 
     if inputs:
         print("hello: " + str(len(inputs)))
-        obj = inputs[0]
         for item in inputs:
-            IncomingHandler.incoming_handler(item.fileno())
+            if item is listensock:
+                newsock, address = item.accept()
+                print("connection from " + str(newsock) + " at " + address)
+                newsock.setblocking(0)
+                inputs.append(newsock)
+                queuedMessages[newsock] = Queue()
+            else:
+                printActions = IncomingHandler.incoming_handler(item.fileno())
+                for player, data in printActions:
+                    queuedMessages[player.socket] = data
+                    if player.socket not in outputs:
+                        outputs.append(player.socket)
 
     if outputs:
         print("uh oh")
+        print(len(outputs))
 
 print("minimud server exited")
 sys.exit(1)

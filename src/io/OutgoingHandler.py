@@ -1,18 +1,13 @@
-from enum import Enum
-
-
-class OutgoingDefs(Enum):
-    BUFFER_LENGTH = 1024
-    PRINT_LINE_WIDTH = 80
-    NAMES_MIN = 5
-    HASH_LENGTH = 70
-    SALT_LENGTH = 50
+from src.io.CommandInterpreter import InfoRequest
+from src.io.IODefs import IODefs
+from src.io.OutputBuilder import print_room_to_player, print_to_player, PrintArg
+from src.rooms.RoomCRUD import lookup_room
 
 
 def outgoing_handler(player):
     expected = buffer_pos = 0
 
-    if (1 + len(player.buffer)) <= OutgoingDefs.PRINT_LINE_WIDTH.value:
+    if (1 + len(player.buffer)) <= IODefs.PRINT_LINE_WIDTH.value:
         # TODO: prompt chars again
         # expected += add_prompt_chars(player)
         return send_and_handle_errors(player, expected)
@@ -47,7 +42,7 @@ def num_of_newlines(player):
 
 def find_reasonable_line_end(player, buffer_pos):
     """Find the last space or newline in the next LINE_WIDTH chars"""
-    line_width_val = OutgoingDefs.PRINT_LINE_WIDTH.value
+    line_width_val = IODefs.PRINT_LINE_WIDTH.value
 
     substr = player.buffer[buffer_pos:(buffer_pos + line_width_val)]
     print("find line end in: " + substr)
@@ -72,7 +67,7 @@ def find_reasonable_line_end(player, buffer_pos):
 
 
 def get_buffer_split_by_line_width(expected):
-    lines = float(expected / OutgoingDefs.PRINT_LINE_WIDTH.value)
+    lines = float(expected / IODefs.PRINT_LINE_WIDTH.value)
     if not lines.is_integer():
         lines += 1
 
@@ -90,3 +85,17 @@ def send_and_handle_errors(player, expected):
 
     player.buffer = ''
     return 0
+
+
+def do_info_cmd(player, info):
+    if info.subtype == InfoRequest.INFO_ROOM:
+        roomResult = lookup_room(player.coords)
+        print_room_to_player(player, roomResult.results())
+
+    if info.subtype == InfoRequest.INFO_COMMANDS:
+        print_to_player(player, PrintArg.SHOWCMDS)
+    if info.subtype == InfoRequest.INFO_PLAYERS:
+        print_to_player(player, PrintArg.LISTPLAYERS)
+    if info.subtype == InfoRequest.INFO_MAP:
+        print("ADD ME")
+

@@ -1,9 +1,11 @@
 from src.io import OutputBuilder
-from src.io.OutputBuilder import print_to_player, print_room_to_player
-from src.players.PlayerCRUD import players_in_room, adjust_player_location
-from src.players.PlayerManagementLive import get_player_by_id
+from src.players.PlayerManagement import get_player_by_id, \
+    ensure_player_moving_valid_dir, reset_player_state, PlayerWaitStates, \
+    players_in_room, adjust_player_location
+from src.players.PlayerMovement import calc_coords_from_playerloc_and_dir
+from src.rooms.RoomClasses import RoomBlueprint
 from ..sqlitehelper import SQLiteHelper
-from . import SpaceClasses
+from . import RoomClasses
 
 
 def adjust_room_name(player):
@@ -148,30 +150,31 @@ def check_exits_and_adjust(coords, room):
 
 
 def exit_to_dir(room_exit):
-    if room_exit == SpaceClasses.RoomExits.NORTH_EXIT:
-        return SpaceClasses.RoomExits.DIR_NORTH
-    if room_exit == SpaceClasses.RoomExits.EAST_EXIT:
-        return SpaceClasses.RoomExits.DIR_EAST
-    if room_exit == SpaceClasses.RoomExits.SOUTH_EXIT:
-        return SpaceClasses.RoomExits.DIR_SOUTH
-    if room_exit == SpaceClasses.RoomExits.WEST_EXIT:
-        return SpaceClasses.RoomExits.DIR_WEST
-    if room_exit == SpaceClasses.RoomExits.UP_EXIT:
-        return SpaceClasses.RoomExits.DIR_UP
-    if room_exit == SpaceClasses.RoomExits.DOWN_EXIT:
-        return SpaceClasses.RoomExits.DIR_DOWN
-    if room_exit == SpaceClasses.RoomExits.NORTHEAST_EXIT:
-        return SpaceClasses.RoomExits.DIR_NORTHEAST
-    if room_exit == SpaceClasses.RoomExits.SOUTHEAST_EXIT:
-        return SpaceClasses.RoomExits.DIR_SOUTHEAST
-    if room_exit == SpaceClasses.RoomExits.SOUTHWEST_EXIT:
-        return SpaceClasses.RoomExits.DIR_SOUTHWEST
-    if room_exit == SpaceClasses.RoomExits.NORTHWEST_EXIT:
-        return SpaceClasses.RoomExits.DIR_NORTHWEST
+    if room_exit == RoomClasses.RoomExits.NORTH_EXIT:
+        return RoomClasses.RoomExits.DIR_NORTH
+    if room_exit == RoomClasses.RoomExits.EAST_EXIT:
+        return RoomClasses.RoomExits.DIR_EAST
+    if room_exit == RoomClasses.RoomExits.SOUTH_EXIT:
+        return RoomClasses.RoomExits.DIR_SOUTH
+    if room_exit == RoomClasses.RoomExits.WEST_EXIT:
+        return RoomClasses.RoomExits.DIR_WEST
+    if room_exit == RoomClasses.RoomExits.UP_EXIT:
+        return RoomClasses.RoomExits.DIR_UP
+    if room_exit == RoomClasses.RoomExits.DOWN_EXIT:
+        return RoomClasses.RoomExits.DIR_DOWN
+    if room_exit == RoomClasses.RoomExits.NORTHEAST_EXIT:
+        return RoomClasses.RoomExits.DIR_NORTHEAST
+    if room_exit == RoomClasses.RoomExits.SOUTHEAST_EXIT:
+        return RoomClasses.RoomExits.DIR_SOUTHEAST
+    if room_exit == RoomClasses.RoomExits.SOUTHWEST_EXIT:
+        return RoomClasses.RoomExits.DIR_SOUTHWEST
+    if room_exit == RoomClasses.RoomExits.NORTHWEST_EXIT:
+        return RoomClasses.RoomExits.DIR_NORTHWEST
     return -1
 
 
 def remove_players_from_room(coords, target_room):
+    from src.io.OutputBuilder import print_to_player, print_room_to_player
     queryResult = players_in_room(target_room.rid)
 
     for i in range(0, len(queryResult.results)):
@@ -258,16 +261,16 @@ def compare_room_owner(player, coords):
 
 def get_dir_str_opposite(direction):
     dirToString = {
-        SpaceClasses.Direction.NORTH: "south",
-        SpaceClasses.Direction.EAST: "west",
-        SpaceClasses.Direction.SOUTH: "north",
-        SpaceClasses.Direction.WEST: "east",
-        SpaceClasses.Direction.UP: "down",
-        SpaceClasses.Direction.DOWN: "up",
-        SpaceClasses.Direction.NORTHEAST: "southwest",
-        SpaceClasses.Direction.SOUTHEAST: "northwest",
-        SpaceClasses.Direction.SOUTHWEST: "northeast",
-        SpaceClasses.Direction.NORTHWEST: "southeast",
+        RoomClasses.Direction.NORTH: "south",
+        RoomClasses.Direction.EAST: "west",
+        RoomClasses.Direction.SOUTH: "north",
+        RoomClasses.Direction.WEST: "east",
+        RoomClasses.Direction.UP: "down",
+        RoomClasses.Direction.DOWN: "up",
+        RoomClasses.Direction.NORTHEAST: "southwest",
+        RoomClasses.Direction.SOUTHEAST: "northwest",
+        RoomClasses.Direction.SOUTHWEST: "northeast",
+        RoomClasses.Direction.NORTHWEST: "southeast",
     }
     if direction in list(dirToString.values()):
         return list(dirToString.values())[direction]
@@ -277,19 +280,193 @@ def get_dir_str_opposite(direction):
 
 def get_dir_str(direction):
     dirToString = {
-        SpaceClasses.Direction.NORTH: "north",
-        SpaceClasses.Direction.EAST: "east",
-        SpaceClasses.Direction.SOUTH: "south",
-        SpaceClasses.Direction.WEST: "west",
-        SpaceClasses.Direction.UP: "up",
-        SpaceClasses.Direction.DOWN: "down",
-        SpaceClasses.Direction.NORTHEAST: "northeast",
-        SpaceClasses.Direction.SOUTHEAST: "southeast",
-        SpaceClasses.Direction.SOUTHWEST: "southwest",
-        SpaceClasses.Direction.NORTHWEST: "northwest",
+        RoomClasses.Direction.NORTH: "north",
+        RoomClasses.Direction.EAST: "east",
+        RoomClasses.Direction.SOUTH: "south",
+        RoomClasses.Direction.WEST: "west",
+        RoomClasses.Direction.UP: "up",
+        RoomClasses.Direction.DOWN: "down",
+        RoomClasses.Direction.NORTHEAST: "northeast",
+        RoomClasses.Direction.SOUTHEAST: "southeast",
+        RoomClasses.Direction.SOUTHWEST: "southwest",
+        RoomClasses.Direction.NORTHWEST: "northwest",
     }
     if direction in list(dirToString.values()):
         print("movement string is " + list(dirToString.values())[direction])
         return list(dirToString.values())[direction]
 
     return "nowhere"
+
+
+def alter_room_links(player, command):
+    if (ensure_player_moving_valid_dir(player, command)) == 1:
+        reset_player_state(player)
+        return 1
+
+    dest_coords = calc_coords_from_playerloc_and_dir(player)
+    src_room = lookup_room(player.coords)
+    dest_room = lookup_room(dest_coords)
+
+    if dest_room is None:
+        print_to_player(player, PrintArg.PRINT_COULDNT_EXIT_NO_ROOM)
+
+    if compare_room_owner(player, player.coords) == 1:
+        print_to_player(player, PrintArg.PRINT_INSUFFICIENT_PERMISSIONS)
+
+    info = get_command_info(command)
+    rv = link_rooms(info.subtype, src_room, dest_room)
+
+    if rv == 0:
+        print_to_player(player, PrintArg.PRINT_TOGGLED_ROOM_EXIT)
+    elif rv == 1:
+        print_to_player(player, PrintArg.PRINT_COULDNT_TOGGLE_EXIT)
+
+    reset_player_state(player)
+
+
+def alter_room_desc(player, command):
+    if command is not None and command[0] is not 'y':
+        print_to_player(player, PrintArg.PRINT_EXITING_CMD_WAIT)
+        reset_player_state(player)
+
+    result = adjust_room_desc(player)
+    if result == 0:
+        print_to_player(player, PrintArg.PRINT_ADJUSTMENT_SUCCESSFUL)
+    elif result is 1:
+        print_to_player(player, PrintArg.PRINT_COULDNT_ADJUST_ROOM)
+    elif result is 2:
+        print_to_player(player, PrintArg.PRINT_INSUFFICIENT_PERMISSIONS)
+
+    reset_player_state(player)
+    roomResult = lookup_room(player.coords)
+    print_room_to_player(player, roomResult)
+
+
+def alter_room_name(player, command):
+    if command is not None and command[0] is not 'y':
+        print_to_player(player, PrintArg.PRINT_EXITING_CMD_WAIT)
+        reset_player_state(player)
+
+    result = adjust_room_name(player)
+    if result == 0:
+        print_to_player(player, PrintArg.PRINT_ADJUSTMENT_SUCCESSFUL)
+    elif result == 1:
+        print_to_player(player, PrintArg.PRINT_COULDNT_ADJUST_ROOM)
+    elif result == 2:
+        print_to_player(player, PrintArg.PRINT_INSUFFICIENT_PERMISSIONS)
+
+    reset_player_state(player)
+    roomResult = lookup_room(player.coords)
+    print_room_to_player(player, roomResult)
+
+
+def handle_room_creation(player, command):
+    if command is not None and command[0] is not 'y':
+        print_to_player(player, PrintArg.PRINT_EXITING_CMD_WAIT)
+        reset_player_state(player)
+
+    dest_coords = calc_coords_from_playerloc_and_dir(player)
+    roomResult = lookup_room(dest_coords)
+
+    if roomResult.id > 0:
+        print_to_player(player, PrintArg.PRINT_ROOM_ALREADY_EXISTS)
+        reset_player_state(player)
+        return
+
+    # check here for their perms
+    # print_to_player(player, PRINT_INSUFFICIENT_PERMISSIONS)
+
+    rconfig = RoomBlueprint()
+    rconfig.name = "NULL SPACE"
+    rconfig.coords = dest_coords
+    rconfig.desc = "It is pitch black. You are likely to be eaten by a null character."
+    rconfig.owner = player.name
+    rconfig.flags = "none"
+
+    existing = lookup_room(player.coords)
+    new = insert_room(rconfig)
+
+    if new is None:
+        print_to_player(player, PrintArg.PRINT_ROOM_CREATION_FAILURE)
+        return
+
+    print_to_player(player, PrintArg.PRINT_ROOM_CREATION_SUCCESS)
+
+    info = get_command_info(player.store)
+    link_rooms(info.subtype, existing, new)
+
+    existing = lookup_room(player.coords)
+    print_room_to_player(player, existing)
+    reset_player_state(player)
+
+
+def handle_room_removal(player, command):
+    if command is not None and command[0] is not 'y':
+        print_to_player(player, PrintArg.PRINT_EXITING_CMD_WAIT)
+        reset_player_state(player)
+
+    # TODO: check exits etc handled & players in room moved
+    result = remove_room(player)
+    if result == 0:
+        print_to_player(player, PrintArg.PRINT_ROOM_REMOVAL_SUCCESS)
+    elif result == -1:
+        print_to_player(player, PrintArg.PRINT_ROOM_REMOVAL_FAILURE)
+    elif result == -2:
+        print_to_player(player, PrintArg.PRINT_INSUFFICIENT_PERMISSIONS)
+
+    reset_player_state(player)
+
+
+def prepare_for_new_room_desc(player, command):
+    player.store = command
+    player.wait_state = PlayerWaitStates.WAIT_CONFIRM_NEW_ROOM_DESC
+    print_to_player(player, PrintArg.PRINT_CONFIRM_NEW_ROOM_DESC)
+
+
+def prepare_for_new_room_name(player, command):
+    player.store = command
+    player.wait_state = PlayerWaitStates.WAIT_CONFIRM_NEW_ROOM_NAME
+    print_to_player(player, PrintArg.PRINT_CONFIRM_NEW_ROOM_NAME)
+
+
+def prepare_for_room_mk(player, command):
+    if ensure_player_moving_valid_dir(player, command) is 1:
+        reset_player_state(player)
+        return
+
+    player.store = command
+    player.wait_state = PlayerWaitStates.WAIT_ROOM_CREATION_CONF
+    print_to_player(player, PrintArg.PRINT_ROOM_CREATION_CONFIRMALL)
+
+
+def prepare_for_room_rm(player):
+    print_to_player(player, PrintArg.PRINT_ROOM_REMOVAL_CONFIRM)
+    player.wait_state = PlayerWaitStates.WAIT_ROOM_REMOVAL_CONFIRM
+
+
+def do_room_cmd(player, info):
+    if info.subtype == RoomChange.ROOM_SET_NAME:
+        print_to_player(player, PrintArg.PRINT_PROVIDE_NEW_ROOM_NAME)
+        player.holding_for_input = 1
+        player.wait_state = PlayerWaitStates.WAIT_ENTER_NEW_ROOM_NAME
+    elif info.subtype == RoomChange.ROOM_SET_DESC:
+        print_to_player(player, PrintArg.PRINT_PROVIDE_NEW_ROOM_DESC)
+        player.wait_state = PlayerWaitStates.WAIT_ENTER_NEW_ROOM_DESC
+        player.holding_for_input = True
+    elif info.subtype == RoomChange.ROOM_SET_EXIT:
+        print_to_player(player, PrintArg.PRINT_PROVIDE_ROOM_EXIT_NAME)
+        player.wait_state = PlayerWaitStates.WAIT_ENTER_EXIT_NAME
+        player.holding_for_input = True
+    elif info.subtype == RoomChange.ROOM_SET_FLAG:
+        print_to_player(player, PrintArg.PRINT_PROVIDE_ROOM_FLAG_NAME)
+        player.wait_state = PlayerWaitStates.WAIT_ENTER_FLAG_NAME
+        player.holding_for_input = True
+    elif info.subtype == RoomChange.ROOM_MK:
+        print_to_player(player, PrintArg.PRINT_ROOM_CREATION_GIVE_DIR)
+        player.wait_state = PlayerWaitStates.WAIT_ROOM_CREATION_DIR
+        player.holding_for_input = True
+    elif info.subtype == RoomChange.ROOM_RM:
+        print_to_player(player, PrintArg.PRINT_ROOM_REMOVAL_CHECK)
+        player.wait_state = PlayerWaitStates.WAIT_ROOM_REMOVAL_CHECK
+        player.holding_for_input = True
+

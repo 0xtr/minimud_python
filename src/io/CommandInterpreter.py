@@ -1,6 +1,29 @@
 from enum import Enum, auto
 
 
+def get_command_info(command):
+    newCommand = Command()
+    commandList = Command.getCompleteList()
+    for commandType in list(commandList):
+        commands = commandList[commandType]
+        if command in commands.values():
+            newCommand.type = commandType
+            newCommand.subtype = commands[command]
+            break
+
+    print("newCommand: " + str(newCommand.type))
+    return newCommand
+
+
+def get_available_commands():
+    num = 0
+    commands = Command.getCompleteList()
+    for i in commands.keys():
+        num += len(commands[i])
+    print("command num is " + num)
+    return num
+
+
 class Movement(Enum):
     DIR_NORTH = auto()
     DIR_EAST = auto()
@@ -105,37 +128,9 @@ def get_all_commands_as_strings():
     for commandType in list(commandList):
         stringList.append(commandType.keys())
 
-    print("commands: " + stringList)
+    print("commands: " + str(stringList))
     return stringList
-
-
-def get_command_info(command):
-    newCommand = Command()
-    commandList = Command.getCompleteList();
-    for commandType in list(commandList):
-        commands = commandList[commandType]
-        if command in commands.values():
-            newCommand.type = commandType
-            newCommand.subtype = commands[command]
-            break
-
-    print("newCommand: " + newCommand.type)
-    return newCommand
-
-
-def get_available_commands():
-    num = 0
-    for i in Command.commandList.keys():
-        num += Command.commandList[i].len
-    print("command num is " + num)
-    return num
 
 
 def is_actual_direction(dir, check):
     return dir == check or dir == (check + 1)
-
-
-def categorize_command(num):
-    command = Command()
-    # magic
-    return command
