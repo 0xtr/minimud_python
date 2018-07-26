@@ -86,16 +86,3 @@ def send_and_handle_errors(player, expected):
     player.buffer = ''
     return 0
 
-
-def do_info_cmd(player, info):
-    if info.subtype == InfoRequest.INFO_ROOM:
-        roomResult = lookup_room(player.coords)
-        print_room_to_player(player, roomResult.results())
-
-    if info.subtype == InfoRequest.INFO_COMMANDS:
-        print_to_player(player, PrintArg.SHOWCMDS)
-    if info.subtype == InfoRequest.INFO_PLAYERS:
-        print_to_player(player, PrintArg.LISTPLAYERS)
-    if info.subtype == InfoRequest.INFO_MAP:
-        print("ADD ME")
-

@@ -1,9 +1,9 @@
-from src.io import OutgoingHandler, CommandInterpreter
+from src.io import CommandInterpreter
 from src.io.IODefs import IODefs
+from src.io.MessageQueue import MessageQueue
 from src.io.PrintArg import PrintArg
 from src.players.ActivePlayers import ActivePlayers
 from src.rooms import RoomClasses
-from src.players import PlayerManagement
 
 
 def print_to_player(player, argument):
@@ -103,7 +103,7 @@ def print_to_player(player, argument):
         if 0 <= argument <= 19:
             set_buffer_for_movement(player, argument)
 
-    return player, player.buffer
+    MessageQueue.queue(player, player.buffer)
 
 
 def set_buffer_for_movement(player, argument):
@@ -181,7 +181,7 @@ def print_room_to_player(player, room):
         if is_in_same_room(each, room.coords):
             player.buffer = each.name + " is here too.\n"
 
-    return player, player.buffer
+    MessageQueue.queue(player, player.buffer)
 
 
 def append_coordinates_for_printing(player, coords):
@@ -206,37 +206,33 @@ def print_all_commands(player):
     if len(player.buffer) != 0:
         player.buffer += "\n"
 
-    return 0
+    MessageQueue.queue(player, player.buffer)
 
 
-def greet_player(socket):
-    player = PlayerManagement.get_player(socket)
+def greet_player(player):
     player.buffer = "WELCOME.\n\n"
     player.buffer += "Please provide a NAME this can be two words and up to " \
                      + IODefs.PRINT_LINE_WIDTH.value
     player.buffer += " characters long in total.\n\nIf you've already created " \
                      + "a character, enter your previous name to resume.\n\n"
-    return player, player.buffer
+    MessageQueue.queue(player, player.buffer)
 
 
 def print_player_speech(player):
-    printActions = []
-
     # check string lengths etc when working
     SKIP_SAY_TOKEN = 4
     playerSpeech = player.name + " says: "
     baseSay = player.buffer[SKIP_SAY_TOKEN:]
     playerSpeech += baseSay
 
-    printActions.append((print_to_other_players(player), playerSpeech))
+    MessageQueue.queueMultiple(print_to_other_players(player, playerSpeech))
 
     player.buffer = "You say: " + baseSay
     print("print_player_speech to others " + playerSpeech)
     print("print_player_speech to them: " + player.buffer + " len " + len(
         player.buffer))
 
-    printActions.append((player, player.buffer))
-    return printActions
+    MessageQueue.queue(player, player.buffer)
 
 
 def print_to_other_players(player, speech):

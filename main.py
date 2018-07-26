@@ -8,6 +8,7 @@ import pdb
 from asyncio import Queue
 
 from src.io import IncomingHandler
+from src.io.MessageQueue import MessageQueue
 from src.sqlitehelper import SQLiteHelper
 
 # debugging
@@ -38,7 +39,6 @@ iterate = True
 inputs = [listensock]
 outputs = []
 error = []
-queuedMessages = {}
 
 while iterate:
     try:
@@ -58,13 +58,10 @@ while iterate:
                 print("connection from " + str(newsock) + " at " + address)
                 newsock.setblocking(0)
                 inputs.append(newsock)
-                queuedMessages[newsock] = Queue()
+                MessageQueue.initQueue(newsock)
             else:
-                printActions = IncomingHandler.incoming_handler(item.fileno())
-                for player, data in printActions:
-                    queuedMessages[player.socket] = data
-                    if player.socket not in outputs:
-                        outputs.append(player.socket)
+                IncomingHandler.incoming_handler(item.fileno())
+                # check message queue next
 
     if outputs:
         print("uh oh")

@@ -1,8 +1,9 @@
 from src.io import OutputBuilder
-from src.players.PlayerManagement import get_player_by_id, \
-    ensure_player_moving_valid_dir, reset_player_state, PlayerWaitStates, \
-    players_in_room, adjust_player_location
+from src.io.CommandInterpreter import RoomChange, get_command_info
+from src.io.OutputBuilder import print_to_player, print_room_to_player
+from src.io.PrintArg import PrintArg
 from src.players.PlayerMovement import calc_coords_from_playerloc_and_dir
+from src.players.PlayerWaitStates import PlayerWaitStates
 from src.rooms.RoomClasses import RoomBlueprint
 from ..sqlitehelper import SQLiteHelper
 from . import RoomClasses
@@ -173,8 +174,9 @@ def exit_to_dir(room_exit):
     return -1
 
 
-def remove_players_from_room(coords, target_room):
+def remove_players_from_room(coords, target_room, players_in_room):
     from src.io.OutputBuilder import print_to_player, print_room_to_player
+    from src.players.PlayerManagement import get_player_by_id, adjust_player_location
     queryResult = players_in_room(target_room.rid)
 
     for i in range(0, len(queryResult.results)):

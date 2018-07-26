@@ -124,7 +124,7 @@ class Command:
 
 def get_all_commands_as_strings():
     stringList = []
-    commandList = Command.getCompleteList();
+    commandList = Command.getCompleteList()
     for commandType in list(commandList):
         stringList.append(commandType.keys())
 
@@ -132,5 +132,5 @@ def get_all_commands_as_strings():
     return stringList
 
 
-def is_actual_direction(dir, check):
-    return dir == check or dir == (check + 1)
+def is_actual_direction(direction, check):
+    return direction == check or direction == (check + 1)

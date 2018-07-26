@@ -1,8 +1,11 @@
-from src.io.CommandInterpreter import CommandTypes, get_command_info
+from src.io.CommandInterpreter import CommandTypes, get_command_info, \
+    SystemAction, InfoRequest
 from src.io.IODefs import IODefs
+from src.io.OutputBuilder import print_to_player, print_player_speech, \
+    print_room_to_player
+from src.io.PrintArg import PrintArg
 
-from src.players.PlayerManagement import PlayerWaitStates, \
-    get_player, shutdown_socket, \
+from src.players.PlayerManagement import get_player, shutdown_socket, \
     handle_new_pass, set_player_confirm_new_pw, handle_existing_pass, \
     handle_incoming_name
 from src.players.PlayerMovement import do_movement_cmd, do_travel_cmd
@@ -10,7 +13,7 @@ from src.players.PlayerMovement import do_movement_cmd, do_travel_cmd
 from src.rooms.RoomCRUD import alter_room_links, handle_room_creation, \
     handle_room_removal, alter_room_name, alter_room_desc, prepare_for_room_mk, \
     prepare_for_room_rm, prepare_for_new_room_desc, prepare_for_new_room_name, \
-    do_room_cmd
+    do_room_cmd, lookup_room
 
 
 def incoming_handler(socket):
@@ -60,6 +63,19 @@ def do_cmd_action(player, info):
     return 0
 
 
+def do_info_cmd(player, info):
+    if info.subtype == InfoRequest.INFO_ROOM:
+        roomResult = lookup_room(player.coords)
+        print_room_to_player(player, roomResult.results())
+
+    if info.subtype == InfoRequest.INFO_COMMANDS:
+        print_to_player(player, PrintArg.PLAYER_SHOW_COMMANDS)
+    if info.subtype == InfoRequest.INFO_PLAYERS:
+        print_to_player(player, PrintArg.LISTPLAYERS)
+    if info.subtype == InfoRequest.INFO_MAP:
+        print("ADD ME")
+
+# move
 def do_system_cmd(player, info):
     if info.subtype == SystemAction.SYS_SAY:
         print_player_speech(player)
@@ -68,16 +84,13 @@ def do_system_cmd(player, info):
 
 
 def interpret_command(player):
-    printActions = []
-
     command = player.buffer.lower()
     print("player command: " + command)
     commandInfo = get_command_info(command)
 
     if player.holding_for_input is False:
         if commandInfo.type == CommandTypes.COMMAND_NOT:
-            print_to_player(player, PrintArg.INVALCMD)
-            return 1
+            return print_to_player(player, PrintArg.INVALCMD)
 
         return do_cmd_action(player, commandInfo.info)
 
@@ -114,4 +127,4 @@ def interpret_command(player):
         print(
             "Unhandled wait state " + player.wait_state + " on player " + player.name)
 
-    return printActions
+    return 0

@@ -1,10 +1,9 @@
-from src.commands.CommandClasses import CommandTypes
-
-from src.io.CommandInterpreter import Command, Movement, TravelAction
+from src.io.CommandInterpreter import Command, Movement, TravelAction, \
+    CommandTypes
 from src.io.OutputBuilder import print_to_player, PrintArg, print_room_to_player
 from src.players.PlayerManagement import adjust_player_location
 from src.rooms.RoomCRUD import lookup_room, lookup_room_exits
-from src.rooms.RoomClasses import Direction
+from src.rooms.RoomClasses import Direction, Coordinates
 
 
 def calc_coords_from_playerloc_and_dir(player):
@@ -12,12 +11,11 @@ def calc_coords_from_playerloc_and_dir(player):
         player.coords.x = player.coords.y = player.coords.z = -1
         return
 
-    # new command struct
-
     info = Command()
     info.type = CommandTypes.COMMAND_NOT
     info.subtype = CommandTypes.COMMAND_NOT
 
+    coords = Coordinates()
     coords.x += x_movement_to_vector(info)
     coords.y += y_movement_to_vector(info)
     coords.z += z_movement_to_vector(info)
@@ -112,13 +110,14 @@ def do_movement_cmd(player, info):
         return
     elif rv == -2:
         # send them back to origin room, somewhere they shouldn't be
-        print_to_player(player, PrintArg.PRINT_INVAL_DIR)
         destination.x = 0
         destination.y = 0
         destination.z = 0
-        # check this
+        print_to_player(player, PrintArg.PRINT_INVAL_DIR)
+        # check me
+    else:
+        print_to_player(player, direction)
 
-    print_to_player(player, direction)
     adjust_player_location(player, dest_room.id)
     print_room_to_player(player, dest_room)
 
