@@ -53,14 +53,17 @@ while iterate:
     if inputs:
         print("hello: " + str(len(inputs)))
         for item in inputs:
+            print(type(item))
             if item is listensock:
                 newsock, address = item.accept()
-                print("connection from " + str(newsock) + " at " + address)
+                print("connection from " + str(newsock) + " at " + str(address))
                 newsock.setblocking(0)
                 inputs.append(newsock)
                 MessageQueue.initQueue(newsock)
+                # fire off welcome stuff and state
             else:
-                IncomingHandler.incoming_handler(item.fileno())
+                print(item.fileno())
+                IncomingHandler.incoming_handler(item)
                 # check message queue next
 
     if outputs:

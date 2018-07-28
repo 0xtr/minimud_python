@@ -4,10 +4,13 @@ import bcrypt
 
 from src.io import CommandInterpreter
 from src.io.IODefs import IODefs
+from src.io.OutputBuilder import print_to_player, print_room_to_player
+from src.io.PrintArg import PrintArg
 from src.players.ActivePlayers import ActivePlayers
 
 from src.players.PlayerDBRecord import PlayerDBRecord
 from src.players.PlayerLiveRecord import PlayerLiveRecord
+from src.players.PlayerMovement import adjust_player_location
 from src.players.PlayerWaitStates import PlayerWaitStates
 from src.rooms.RoomCRUD import lookup_room, lookup_room_by_id
 from src.sqlitehelper import SQLiteHelper
@@ -124,13 +127,6 @@ def lookup_player(name):
     return player
 
 
-def adjust_player_location(player, room_id):
-    return SQLiteHelper.SQLExecution(
-        "UPDATE PLAYERS SET loc_id =:room_id WHERE name =:pname",
-        {"loc_id": room_id, "name": player.name},
-        SQLiteHelper.DBTypes.PLAYER_DB)
-
-
 def ensure_player_moving_valid_dir(player, command):
     from src.io.OutputBuilder import print_to_player, PrintArg
     if command.type == CommandInterpreter.Movement:
@@ -167,7 +163,6 @@ def check_player_pass(player, pw):
 
 
 def handle_existing_pass(player, command):
-    from src.io.OutputBuilder import print_to_player, PrintArg, print_room_to_player
     player_db = lookup_player(player.name)
 
     if player_db is None:

@@ -5,9 +5,7 @@ from src.io.OutputBuilder import print_to_player, print_player_speech, \
     print_room_to_player
 from src.io.PrintArg import PrintArg
 
-from src.players.PlayerManagement import get_player, shutdown_socket, \
-    handle_new_pass, set_player_confirm_new_pw, handle_existing_pass, \
-    handle_incoming_name
+import src.players.PlayerManagement
 from src.players.PlayerMovement import do_movement_cmd, do_travel_cmd
 
 from src.rooms.RoomCRUD import alter_room_links, handle_room_creation, \
@@ -25,10 +23,10 @@ def incoming_handler(socket):
     while len(socket.recv(bufLenMax, socket.MSG_PEEK)) > 0:
         socket.recv(bufLenMax, 0)
 
-    player = get_player(socket)
+    player = src.players.PlayerManagement.get_player(socket)
 
     if len(buffer) == 0:
-        return shutdown_socket(player)
+        return shutdown(player)
 
     player.buffer = buffer
 
@@ -75,12 +73,12 @@ def do_info_cmd(player, info):
     if info.subtype == InfoRequest.INFO_MAP:
         print("ADD ME")
 
-# move
+
 def do_system_cmd(player, info):
     if info.subtype == SystemAction.SYS_SAY:
         print_player_speech(player)
     elif info.subtype == SystemAction.SYS_QUIT:
-        shutdown_socket(player)
+        shutdown(player)
 
 
 def interpret_command(player):
@@ -95,36 +93,40 @@ def interpret_command(player):
         return do_cmd_action(player, commandInfo.info)
 
     # should probably handle 'quit' if they want to exit this process, or C - C
-    if player.wait_state == PlayerWaitStates.THEIR_NAME:
-        handle_incoming_name(player, command)
-    elif player.wait_state == PlayerWaitStates.THEIR_PASSWORD:
-        handle_existing_pass(player, command)
-    elif player.wait_state == PlayerWaitStates.THEIR_PASSWORD_NEWPRELIM:
-        set_player_confirm_new_pw(player, command)
-    elif player.wait_state == PlayerWaitStates.THEIR_PASSWORD_NEWFINAL:
-        handle_new_pass(player, command)
-    elif player.wait_state == PlayerWaitStates.WAIT_ENTER_NEW_ROOM_NAME:
+    if player.wait_state == src.players.PlayerManagement.PlayerManagement.PlayerWaitStates.THEIR_NAME:
+        src.players.PlayerManagement.handle_incoming_name(player, command)
+    elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.THEIR_PASSWORD:
+        src.players.PlayerManagement.handle_existing_pass(player, command)
+    elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.THEIR_PASSWORD_NEWPRELIM:
+        src.players.PlayerManagement.set_player_confirm_new_pw(player, command)
+    elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.THEIR_PASSWORD_NEWFINAL:
+        src.players.PlayerManagement.handle_new_pass(player, command)
+    elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.WAIT_ENTER_NEW_ROOM_NAME:
         prepare_for_new_room_name(player, command)
-    elif player.wait_state == PlayerWaitStates.WAIT_CONFIRM_NEW_ROOM_NAME:
+    elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.WAIT_CONFIRM_NEW_ROOM_NAME:
         alter_room_name(player, command)
-    elif player.wait_state == PlayerWaitStates.WAIT_ENTER_NEW_ROOM_DESC:
+    elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.WAIT_ENTER_NEW_ROOM_DESC:
         prepare_for_new_room_desc(player, command)
-    elif player.wait_state == PlayerWaitStates.WAIT_CONFIRM_NEW_ROOM_DESC:
+    elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.WAIT_CONFIRM_NEW_ROOM_DESC:
         alter_room_desc(player, command)
-    elif player.wait_state == PlayerWaitStates.WAIT_ROOM_REMOVAL_CHECK:
+    elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.WAIT_ROOM_REMOVAL_CHECK:
         prepare_for_room_rm(player)
-    elif player.wait_state == PlayerWaitStates.WAIT_ROOM_REMOVAL_CONFIRM:
+    elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.WAIT_ROOM_REMOVAL_CONFIRM:
         handle_room_removal(player, command)
-    elif player.wait_state == PlayerWaitStates.WAIT_ROOM_CREATION_DIR:
+    elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.WAIT_ROOM_CREATION_DIR:
         prepare_for_room_mk(player, command)
-    elif player.wait_state == PlayerWaitStates.WAIT_ROOM_CREATION_CONF:
+    elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.WAIT_ROOM_CREATION_CONF:
         handle_room_creation(player, command)
-    elif player.wait_state == PlayerWaitStates.WAIT_ENTER_FLAG_NAME:
+    elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.WAIT_ENTER_FLAG_NAME:
         print("dead code")
-    elif player.wait_state == PlayerWaitStates.WAIT_ENTER_EXIT_NAME:
+    elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.WAIT_ENTER_EXIT_NAME:
         alter_room_links(player, command)
     else:
         print(
             "Unhandled wait state " + player.wait_state + " on player " + player.name)
 
     return 0
+
+
+def shutdown(player):
+    return src.players.PlayerManagement.shutdown_socket(player)

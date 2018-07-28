@@ -1,9 +1,9 @@
 from src.io.CommandInterpreter import Command, Movement, TravelAction, \
     CommandTypes
 from src.io.OutputBuilder import print_to_player, PrintArg, print_room_to_player
-from src.players.PlayerManagement import adjust_player_location
 from src.rooms.RoomCRUD import lookup_room, lookup_room_exits
 from src.rooms.RoomClasses import Direction, Coordinates
+from src.sqlitehelper import SQLiteHelper
 
 
 def calc_coords_from_playerloc_and_dir(player):
@@ -128,4 +128,12 @@ def do_travel_cmd(player, info):
 
     if info.subtype == TravelAction.TRAVEL_SWAP:
         print("ADD ME %d\n", player.socket_num)
+
+
+def adjust_player_location(player, room_id):
+    return SQLiteHelper.SQLExecution(
+        "UPDATE PLAYERS SET loc_id =:room_id WHERE name =:pname",
+        {"loc_id": room_id, "name": player.name},
+        SQLiteHelper.DBTypes.PLAYER_DB)
+
 

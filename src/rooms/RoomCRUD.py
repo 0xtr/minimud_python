@@ -2,8 +2,10 @@ from src.io import OutputBuilder
 from src.io.CommandInterpreter import RoomChange, get_command_info
 from src.io.OutputBuilder import print_to_player, print_room_to_player
 from src.io.PrintArg import PrintArg
-from src.players.PlayerMovement import calc_coords_from_playerloc_and_dir
+#from src.players.PlayerMovement import calc_coords_from_playerloc_and_dir
 from src.players.PlayerWaitStates import PlayerWaitStates
+import src.players.PlayerMovement
+import src.players.PlayerManagement
 from src.rooms.RoomClasses import RoomBlueprint
 from ..sqlitehelper import SQLiteHelper
 from . import RoomClasses
@@ -301,11 +303,11 @@ def get_dir_str(direction):
 
 
 def alter_room_links(player, command):
-    if (ensure_player_moving_valid_dir(player, command)) == 1:
-        reset_player_state(player)
+    if (src.players.PlayerManagement.ensure_player_moving_valid_dir(player, command)) == 1:
+        src.players.PlayerManagement.reset_player_state(player)
         return 1
 
-    dest_coords = calc_coords_from_playerloc_and_dir(player)
+    dest_coords = src.players.PlayerMovement.calc_coords_from_playerloc_and_dir(player)
     src_room = lookup_room(player.coords)
     dest_room = lookup_room(dest_coords)
 
@@ -323,13 +325,13 @@ def alter_room_links(player, command):
     elif rv == 1:
         print_to_player(player, PrintArg.PRINT_COULDNT_TOGGLE_EXIT)
 
-    reset_player_state(player)
+    reset(player)
 
 
 def alter_room_desc(player, command):
     if command is not None and command[0] is not 'y':
         print_to_player(player, PrintArg.PRINT_EXITING_CMD_WAIT)
-        reset_player_state(player)
+        src.players.PlayerManagement.reset_player_state(player)
 
     result = adjust_room_desc(player)
     if result == 0:
@@ -339,7 +341,7 @@ def alter_room_desc(player, command):
     elif result is 2:
         print_to_player(player, PrintArg.PRINT_INSUFFICIENT_PERMISSIONS)
 
-    reset_player_state(player)
+    reset(player)
     roomResult = lookup_room(player.coords)
     print_room_to_player(player, roomResult)
 
@@ -347,7 +349,7 @@ def alter_room_desc(player, command):
 def alter_room_name(player, command):
     if command is not None and command[0] is not 'y':
         print_to_player(player, PrintArg.PRINT_EXITING_CMD_WAIT)
-        reset_player_state(player)
+        reset()
 
     result = adjust_room_name(player)
     if result == 0:
@@ -357,7 +359,7 @@ def alter_room_name(player, command):
     elif result == 2:
         print_to_player(player, PrintArg.PRINT_INSUFFICIENT_PERMISSIONS)
 
-    reset_player_state(player)
+    reset(player)
     roomResult = lookup_room(player.coords)
     print_room_to_player(player, roomResult)
 
@@ -365,14 +367,14 @@ def alter_room_name(player, command):
 def handle_room_creation(player, command):
     if command is not None and command[0] is not 'y':
         print_to_player(player, PrintArg.PRINT_EXITING_CMD_WAIT)
-        reset_player_state(player)
+        reset(player)
 
-    dest_coords = calc_coords_from_playerloc_and_dir(player)
+    dest_coords = src.players.PlayerMovement.calc_coords_from_playerloc_and_dir(player)
     roomResult = lookup_room(dest_coords)
 
     if roomResult.id > 0:
         print_to_player(player, PrintArg.PRINT_ROOM_ALREADY_EXISTS)
-        reset_player_state(player)
+        reset(player)
         return
 
     # check here for their perms
@@ -399,13 +401,13 @@ def handle_room_creation(player, command):
 
     existing = lookup_room(player.coords)
     print_room_to_player(player, existing)
-    reset_player_state(player)
+    reset(player)
 
 
 def handle_room_removal(player, command):
     if command is not None and command[0] is not 'y':
         print_to_player(player, PrintArg.PRINT_EXITING_CMD_WAIT)
-        reset_player_state(player)
+        reset(player)
 
     # TODO: check exits etc handled & players in room moved
     result = remove_room(player)
@@ -416,7 +418,7 @@ def handle_room_removal(player, command):
     elif result == -2:
         print_to_player(player, PrintArg.PRINT_INSUFFICIENT_PERMISSIONS)
 
-    reset_player_state(player)
+    reset(player)
 
 
 def prepare_for_new_room_desc(player, command):
@@ -432,8 +434,8 @@ def prepare_for_new_room_name(player, command):
 
 
 def prepare_for_room_mk(player, command):
-    if ensure_player_moving_valid_dir(player, command) is 1:
-        reset_player_state(player)
+    if src.players.PlayerManagement.ensure_player_moving_valid_dir(player, command) is 1:
+        reset(player)
         return
 
     player.store = command
@@ -472,3 +474,6 @@ def do_room_cmd(player, info):
         player.wait_state = PlayerWaitStates.WAIT_ROOM_REMOVAL_CHECK
         player.holding_for_input = True
 
+
+def reset(player):
+    src.players.PlayerManagement.reset_player_state(player)
