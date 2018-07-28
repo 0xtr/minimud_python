@@ -21,7 +21,7 @@ def get_player(socket):
         if player.socket == socket:
             return player
 
-    return None
+    return add_new_player(socket)
 
 
 def get_player_by_id(pid):
@@ -35,16 +35,13 @@ def get_player_by_id(pid):
 def remove_player_by_socket(socket):
     print("remove by socket ", socket)
     ActivePlayers.activePlayers.remove(get_player(socket))
-    # remove from select socklist?
+    # TODO: remove from select socklist when global
 
 
 def add_new_player(socket):
-    player = PlayerLiveRecord()
-    player.db_id = -1
-    player.socket = socket
-    player.holding_for_input = True
-    player.wait_state = PlayerWaitStates.THEIR_NAME
+    player = PlayerLiveRecord(socket)
     ActivePlayers.activePlayers.append(player)
+    return player
 
 
 def get_num_of_players():
@@ -254,8 +251,8 @@ def check_if_name_is_reserved(name):
     from src.io.OutputBuilder import PrintArg
     commandList = CommandInterpreter.get_all_commands_as_strings()
     for i in commandList:
-        if commandList[i] == name:
-            return True, PrintArg.PRINT_NAME_UNAVAILABLE
+        if i == name:
+            return True, PrintArg.PLAYER_NAME_UNAVAILABLE
 
     return False
 
@@ -264,15 +261,14 @@ def check_if_name_is_valid(player, name):
     from src.io.OutputBuilder import PrintArg
     if len(name) > IODefs.PRINT_LINE_WIDTH.value or len(
             name) < IODefs.NAMES_MIN.value:
-        return False, PrintArg.PRINT_NAME_NOT_WITHIN_PARAMS
+        return False, PrintArg.PLAYER_NAME_NOT_WITHIN_PARAMS
 
-    for i in player.buffer:
-        c = player.buffer[i]
+    for c in player.buffer:
         if c == 0:
             break
 
-        if not c.isalnum() and c != ' ':
-            return False, PrintArg.PRINT_NAME_NOT_WITHIN_PARAMS
+        if not chr(c).isalnum() and chr(c) != ' ':
+            return False, PrintArg.PLAYER_NAME_NOT_WITHIN_PARAMS
 
     return True
 
@@ -289,7 +285,7 @@ def check_if_player_is_already_online(player, name):
         print_to_player(player, PrintArg.PLAYER_ALREADY_ONLINE)
         player.wait_state = PlayerWaitStates.THEIR_NAME
 
-        return True, PrintArg.PRINT_PLAYER_ALREADY_ONLINE
+        return True, PrintArg.PLAYER_ALREADY_ONLINE
 
     return False
 

@@ -126,7 +126,7 @@ def get_all_commands_as_strings():
     stringList = []
     commandList = Command.getCompleteList()
     for commandType in list(commandList):
-        stringList.append(commandType.keys())
+        stringList.append(list(commandList[commandType]))
 
     print("commands: " + str(stringList))
     return stringList

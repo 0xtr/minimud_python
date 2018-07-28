@@ -1,11 +1,8 @@
 import random
+import selectors
 import socket
 import sys
-import select
 import pdb
-
-# get a suitable port
-from asyncio import Queue
 
 from src.io import IncomingHandler
 from src.io.MessageQueue import MessageQueue
@@ -35,40 +32,26 @@ except Exception as e:
 # set listener for connections
 listensock.listen()
 
-iterate = True
-inputs = [listensock]
-outputs = []
-error = []
 
-while iterate:
-    try:
-        inputs, outputs, error = select.select(inputs, outputs, error)
-    except select.error as selError:
-        print(selError)
-        break
-    except socket.error as sockError:
-        print(sockError)
-        break
+def accept(sock, mask):
+    newsock, address = sock.accept()
+    newsock.setblocking(False)
+    print("connection from " + str(newsock) + " at " + str(address))
+    MessageQueue.initQueue(newsock)
+    selector.register(newsock, selectors.EVENT_READ, read)
+    # TODO: welcome them nicely
 
-    if inputs:
-        print("hello: " + str(len(inputs)))
-        for item in inputs:
-            print(type(item))
-            if item is listensock:
-                newsock, address = item.accept()
-                print("connection from " + str(newsock) + " at " + str(address))
-                newsock.setblocking(0)
-                inputs.append(newsock)
-                MessageQueue.initQueue(newsock)
-                # fire off welcome stuff and state
-            else:
-                print(item.fileno())
-                IncomingHandler.incoming_handler(item)
-                # check message queue next
 
-    if outputs:
-        print("uh oh")
-        print(len(outputs))
+def read(sock, mask):
+    IncomingHandler.incoming_handler(sock)
 
-print("minimud server exited")
-sys.exit(1)
+
+# TODO: store selector in class
+selector = selectors.DefaultSelector()
+selector.register(listensock, selectors.EVENT_READ, accept)
+
+while True:
+    events = selector.select()
+    for key, mask in events:
+        callback = key.data
+        callback(key.fileobj, mask)

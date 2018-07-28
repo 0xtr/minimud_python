@@ -1,3 +1,6 @@
+import termios
+from fcntl import ioctl
+
 from src.io.CommandInterpreter import CommandTypes, get_command_info, \
     SystemAction, InfoRequest
 from src.io.IODefs import IODefs
@@ -16,12 +19,12 @@ from src.rooms.RoomCRUD import alter_room_links, handle_room_creation, \
 
 def incoming_handler(socket):
     bufLenMax = IODefs.BUFFER_LENGTH.value
-    buffer = len(socket.recv(bufLenMax, socket.MSG_PEEK))
-    print("peeked: " + str(buffer))
-    buffer = socket.recv(bufLenMax, 0)
+    buffer = socket.recv(bufLenMax)
+    print("buffer: [" + str(buffer) + "]")
 
-    while len(socket.recv(bufLenMax, socket.MSG_PEEK)) > 0:
-        socket.recv(bufLenMax, 0)
+    # TODO: handle excess data
+    #while len(socket.recv(bufLenMax)) > 0:
+    #    socket.recv(bufLenMax)
 
     player = src.players.PlayerManagement.get_player(socket)
 
@@ -30,7 +33,9 @@ def incoming_handler(socket):
 
     player.buffer = buffer
 
+    # TODO: fix stripping
     strip_carriage_returns(player)
+    print("stripped: " + str(player.buffer))
     interpret_command(player)
 
     return 0
@@ -83,7 +88,7 @@ def do_system_cmd(player, info):
 
 def interpret_command(player):
     command = player.buffer.lower()
-    print("player command: " + command)
+    print("player command: " + str(command))
     commandInfo = get_command_info(command)
 
     if player.holding_for_input is False:
@@ -93,7 +98,7 @@ def interpret_command(player):
         return do_cmd_action(player, commandInfo.info)
 
     # should probably handle 'quit' if they want to exit this process, or C - C
-    if player.wait_state == src.players.PlayerManagement.PlayerManagement.PlayerWaitStates.THEIR_NAME:
+    if player.wait_state == src.players.PlayerManagement.PlayerWaitStates.THEIR_NAME:
         src.players.PlayerManagement.handle_incoming_name(player, command)
     elif player.wait_state == src.players.PlayerManagement.PlayerWaitStates.THEIR_PASSWORD:
         src.players.PlayerManagement.handle_existing_pass(player, command)
