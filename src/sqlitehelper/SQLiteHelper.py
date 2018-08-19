@@ -40,7 +40,7 @@ class SQLExecution:
         cursor = conn.cursor()
         # is it okay if queryargs is empty to do this
         cursor.execute(self.query, self.queryArgs)
-        print("results for [" + self.query + "]: " + cursor.fetchall)
+        print("results for [" + str(self.query) + "]: " + str(cursor.fetchall))
 
         self.queryResult = QueryResult(cursor.fetchall())
         print(QueryResult(cursor.fetchall()))
@@ -99,7 +99,7 @@ class SQLDBConnector:
     @staticmethod
     def open_playerdb():
         queryResult = SQLExecution(
-            "CREATE TABLE PLAYERS (id PRIMARY KEY AUTOINCREMENT,"
+            "CREATE TABLE PLAYERS (id INTEGER PRIMARY KEY AUTOINCREMENT,"
             "name TEXT, hash TEXT, salt TEXT, last_ip TEXT,"
             "loc_id INT)", {}, DBTypes.PLAYER_DB)
 

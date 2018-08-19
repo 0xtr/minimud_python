@@ -1,6 +1,3 @@
-import termios
-from fcntl import ioctl
-
 from src.io.CommandInterpreter import CommandTypes, get_command_info, \
     SystemAction, InfoRequest
 from src.io.IODefs import IODefs
@@ -34,17 +31,17 @@ def incoming_handler(socket):
     player.buffer = buffer
 
     # TODO: fix stripping
-    strip_carriage_returns(player)
+    strip_special_chars(player)
     print("stripped: " + str(player.buffer))
     interpret_command(player)
 
     return 0
 
 
-def strip_carriage_returns(player):
-    for i in range(0, len(player.buffer)):
-        if player.buffer[i] == '\r':
-            player.buffer[i] = '\0'
+def strip_special_chars(player):
+    for i in player.buffer:
+        if i is '\r' or '\n':
+            i = '\0'
 
 
 def do_cmd_action(player, info):
